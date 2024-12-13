@@ -3,7 +3,7 @@ import { getAuth } from '../utils.js'
 export class Socket extends EventTarget {
   private socket: WebSocket | null = null
   private status: 'WAIT' | 'OPEN' | 'CLOSED' = 'WAIT'
-  constructor(protected serverURL: string) {
+  constructor(public serverURL: string) {
     super()
     this.connection()
   }

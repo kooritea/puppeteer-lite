@@ -1,5 +1,14 @@
-type SeverPageEvent = 'page.auth' | 'page.evaluate' | 'page.waitForSelector' | 'page.close'
-type SeverBrowserEvent = 'browser.auth' | 'browser.createChildBrowser' | 'browser.createPage'
+type SeverPageEvent =
+  | 'page.auth'
+  | 'page.evaluate'
+  | 'page.waitForSelector'
+  | 'page.type'
+  | 'page.close'
+type SeverBrowserEvent =
+  | 'browser.auth'
+  | 'browser.createChildBrowser'
+  | 'browser.createPage'
+  | 'browser.close'
 type SeverEvent = SeverPageEvent | SeverBrowserEvent
 
 interface SocketPack {
@@ -22,6 +31,15 @@ interface FromServerPageWaitForSelectorSocketPack extends SocketPack {
   id: string
   data: {
     selector: string
+  }
+}
+interface FromServerPageTypeSocketPack extends SocketPack {
+  event: 'page.type'
+  id: string
+  data: {
+    selector: string
+    text: string
+    options?: KeyboardTypeOptions
   }
 }
 interface FromServerPageCloseSocketPack extends SocketPack {
@@ -47,12 +65,18 @@ interface FromServerBrowserCreatePageSocketPack extends SocketPack {
     pageId: string
   }
 }
+interface FromServerBrowserCloseSocketPack extends SocketPack {
+  event: 'browser.close'
+  id: string
+}
 
 type FromServerSocketPack =
   | FromServerPageAuthSocketPack
   | FromServerPageEvaluateSocketPack
+  | FromServerPageTypeSocketPack
   | FromServerPageWaitForSelectorSocketPack
   | FromServerPageCloseSocketPack
   | FromServerBrowserAuthSocketPack
   | FromServerBrowserCreateChildBrowserSocketPack
   | FromServerBrowserCreatePageSocketPack
+  | FromServerBrowserCloseSocketPack

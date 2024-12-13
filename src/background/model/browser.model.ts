@@ -2,9 +2,10 @@ import { Page } from './page.model.js'
 import { Socket } from './socket.model.js'
 
 export class Browser extends Socket {
+  private closeSignalId: string | undefined
   private pages: Array<Page> = []
-  private emitCreateChilBrowser: (browser: Browser) => void
-  constructor(serverURL: string, onCreateChildBrowser: (browser: Browser) => void) {
+  private emitCreateChilBrowser: (serverURL: string) => Promise<Browser>
+  constructor(serverURL: string, onCreateChildBrowser: (serverURL: string) => Promise<Browser>) {
     super(serverURL)
     this.emitCreateChilBrowser = onCreateChildBrowser
   }
@@ -44,21 +45,20 @@ export class Browser extends Socket {
         this.onCreatePage(pack)
         break
       }
+      case 'browser.close': {
+        this.closeSignalId = pack.id
+        this.close().catch((e: Error) => {
+          return this.send(pack.event, e.message, pack.id, true)
+        })
+        break
+      }
     }
   }
 
-  private onCreateChildBrowser(pack: FromServerBrowserCreateChildBrowserSocketPack): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const browser = new Browser(pack.data.serverURL, this.emitCreateChilBrowser)
-      browser.addEventListener('connect_success', () => {
-        this.emitCreateChilBrowser(browser)
-        resolve()
-      })
-      browser.addEventListener('connect_error', (e) => {
-        console.log('从浏览器实例创建失败', e)
-        reject(new Error(`connect_error: ${pack.data.serverURL}`))
-      })
-    })
+  private async onCreateChildBrowser(
+    pack: FromServerBrowserCreateChildBrowserSocketPack
+  ): Promise<void> {
+    await this.emitCreateChilBrowser(pack.data.serverURL)
   }
 
   private onCreatePage(pack: FromServerBrowserCreatePageSocketPack): void {
@@ -77,5 +77,11 @@ export class Browser extends Socket {
       this.pages = this.pages.splice(pageIndex, 1)
       await page.close()
     }
+  }
+
+  public async close(): Promise<void> {
+    await this.send('browser.close', {}, this.closeSignalId)
+    super.close()
+    this.dispatchEvent(new CustomEvent('close'))
   }
 }

@@ -1,11 +1,11 @@
 import { Config } from '../config.js'
-import { Browser } from './browser.model.js'
+import { Browser } from './model/browser.model.js'
 
 let masterBrowser: Browser
 const browsers: Array<Browser> = []
 
 function start() {
-  masterBrowser = new Browser(Config.masterWS, true, (browser) => {
+  masterBrowser = new Browser(Config.masterWS, (browser) => {
     console.log('从浏览器实例创建成功', browsers)
     browsers.push(browser)
     browser.addEventListener('close', () => {
@@ -34,11 +34,11 @@ chrome.alarms.onAlarm.addListener(() => {
   }
 })
 chrome.tabs.onRemoved.addListener(function (tabId) {
-  masterBrowser?.onRemovePage(tabId).catch((e) => {
+  masterBrowser?.removePage(tabId).catch((e) => {
     console.error(e)
   })
   for (const child of browsers) {
-    child.onRemovePage(tabId).catch((e) => {
+    child.removePage(tabId).catch((e) => {
       console.error(e)
     })
   }

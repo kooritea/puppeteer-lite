@@ -1,95 +1,30 @@
-import { getAuth, tryDo } from './utils.js'
+import { tryDo } from '../utils.js'
+import { Socket } from './socket.model.js'
 
-export class Page extends EventTarget {
+export class Page extends Socket {
   private closeSignalId: string | undefined
-  private status: 'WAIT' | 'OPEN' | 'CLOSED' = 'WAIT'
-  private socket: WebSocket | null = null
   constructor(
     public tab: chrome.tabs.Tab,
     private pageId: string,
-    private serverURL: string
+    serverURL: string
   ) {
-    super()
-    this._connection()
+    super(serverURL)
   }
 
-  private _connection(): void {
-    this.socket = new WebSocket(this.serverURL)
-    this.socket.addEventListener('message', (ev) => {
-      const pack = JSON.parse(ev.data as string) as FromServerSocketPack
-      this.onMessage(pack)
-    })
-    this.socket.addEventListener('open', () => {
-      getAuth()
-        .then((token) => {
-          this.socket?.send(
-            JSON.stringify({
-              event: 'page.create',
-              data: {
-                pageId: this.pageId,
-                auth: token,
-              },
-            })
-          )
-        })
-        .catch((e) => {
-          console.error(e)
-        })
-    })
-    this.socket.addEventListener('close', () => {
-      if (this.status !== 'CLOSED') {
-        setTimeout(() => {
-          this._connection()
-        }, 1000)
-      }
+  protected createSocketOpenPack(token: string): string {
+    return JSON.stringify({
+      event: 'page.create',
+      data: {
+        pageId: this.pageId,
+        auth: token,
+      },
     })
   }
 
-  private _isOpen(): Promise<void> {
-    return new Promise((resolve) => {
-      if (this.status === 'OPEN') {
-        resolve()
-      } else {
-        const timer = setInterval(() => {
-          if (this.status === 'OPEN') {
-            clearInterval(timer)
-            resolve()
-          }
-        }, 100)
-      }
-    })
-  }
-
-  private async send(
-    event: string,
-    data: unknown,
-    id?: string,
-    isError: boolean = false
-  ): Promise<void> {
-    await this._isOpen()
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        try {
-          this.socket?.send(
-            JSON.stringify({
-              event,
-              id,
-              data,
-              isError,
-            })
-          )
-          resolve()
-        } catch (e) {
-          reject(e)
-        }
-      })
-    })
-  }
-
-  private onMessage(pack: FromServerSocketPack): void {
+  protected onMessage(pack: FromServerSocketPack): void {
     switch (pack.event) {
       case 'page.auth': {
-        this.status = 'OPEN'
+        this.open()
         break
       }
       case 'page.evaluate': {
@@ -145,10 +80,9 @@ export class Page extends EventTarget {
     }, pack.data.code)
   }
 
-  public async onClose(): Promise<void> {
+  public async close(): Promise<void> {
     await this.send('page.close', {}, this.closeSignalId)
-    this.status = 'CLOSED'
-    this.socket?.close()
+    super.close()
   }
 
   private async executeScript<T>(

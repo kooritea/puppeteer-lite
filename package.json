@@ -3,22 +3,25 @@
   "version": "1.0.0",
   "description": "使用chrome扩展实现类似puppeteer的远程自动控制",
   "scripts": {
-    "dev": "tsc -w",
-    "build": "npm run prebuild && tsc -p ./tsconfig.build.json",
+    "build": "node ./build.js",
     "prebuild": "rimraf dist"
   },
+  "type": "module",
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/chrome": "^0.0.287",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
     "@typescript-eslint/parser": "^6.9.0",
+    "esbuild": "^0.24.0",
     "eslint": "^8.52.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.1",
     "prettier": "^3.0.3",
     "prettier-plugin-organize-imports": "^3.2.3",
-    "rimraf": "^6.0.1",
-    "typescript": "^5.7.2"
+    "rimraf": "^6.0.1"
+  },
+  "dependencies": {
+    "puppeteer-core": "^23.10.4"
   }
 }

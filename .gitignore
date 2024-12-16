@@ -30,4 +30,4 @@ lerna-debug.log*
 
 # IDE - VSCode
 
-src/config.local.ts
+*.local.*

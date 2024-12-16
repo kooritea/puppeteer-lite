@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "ES6",
+    "module": "nodenext",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -13,10 +13,16 @@
     "incremental": true,
     "skipLibCheck": false,
     "strict": true,
-    "typeRoots": ["./node_modules/@types", "./src/typings"],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/typings"
+    ],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": true,
-    "lib": ["ES2022","DOM"]
+    "lib": [
+      "ES2022",
+      "DOM"
+    ]
   }
 }

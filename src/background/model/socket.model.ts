@@ -4,6 +4,7 @@ import { getAuth } from '../utils.js'
 export class Socket extends EventTarget {
   private socket: WebSocket | null = null
   private status: 'WAIT' | 'OPEN' | 'CLOSED' = 'WAIT'
+  private isFirstOpen = true
   constructor(public serverURL: string) {
     super()
     this.connection()
@@ -29,6 +30,7 @@ export class Socket extends EventTarget {
     })
     this.socket.addEventListener('close', () => {
       if (this.status !== 'CLOSED') {
+        this.status = 'WAIT'
         setTimeout(() => {
           this.connection()
         }, 1000)
@@ -79,7 +81,10 @@ export class Socket extends EventTarget {
 
   protected open(): void {
     this.status = 'OPEN'
-    this.dispatchEvent(new CustomEvent('connect_success'))
+    if (this.isFirstOpen) {
+      this.dispatchEvent(new CustomEvent('connect_success'))
+      this.isFirstOpen = false
+    }
   }
 
   protected close(): void {

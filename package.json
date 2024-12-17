@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "description": "使用chrome扩展实现类似puppeteer的远程自动控制",
   "scripts": {
-    "build": "node ./build.js",
+    "build": "node ./build.mjs",
     "prebuild": "rimraf dist"
   },
-  "type": "module",
   "author": "",
   "license": "ISC",
   "devDependencies": {

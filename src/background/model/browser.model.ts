@@ -1,3 +1,8 @@
+import {
+  FromServerBrowserCreateChildBrowserSocketPack,
+  FromServerBrowserCreatePageSocketPack,
+  FromServerSocketPack,
+} from 'src/typings/server.js'
 import { Page } from './page.model.js'
 import { Socket } from './socket.model.js'
 

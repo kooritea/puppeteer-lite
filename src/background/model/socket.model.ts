@@ -1,3 +1,4 @@
+import { FromServerSocketPack } from 'src/typings/server.js'
 import { getAuth } from '../utils.js'
 
 export class Socket extends EventTarget {

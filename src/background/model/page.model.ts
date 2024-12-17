@@ -1,14 +1,29 @@
+import {
+  FromServerPageEvaluateSocketPack,
+  FromServerPageTypeSocketPack,
+  FromServerPageWaitForSelectorSocketPack,
+  FromServerSocketPack,
+} from 'src/typings/server.js'
 import { tryDo } from '../utils.js'
+import { ExtKeyboard, ExtMouse } from './Input.js'
 import { Socket } from './socket.model.js'
 
 export class Page extends Socket {
   private closeSignalId: string | undefined
+  private keyboard: ExtKeyboard
+  private mouse: ExtMouse
+
   constructor(
     public tab: chrome.tabs.Tab,
     private pageId: string,
     serverURL: string
   ) {
     super(serverURL)
+    if (!tab.id) {
+      throw new Error('not found tab.id')
+    }
+    this.keyboard = new ExtKeyboard(tab.id)
+    this.mouse = new ExtMouse(this.keyboard, tab.id)
   }
 
   protected createSocketOpenPack(token: string): string {
@@ -28,7 +43,7 @@ export class Page extends Socket {
         break
       }
       case 'page.evaluate': {
-        this.onEvaluate(pack)
+        this.onCmdEvaluate(pack)
           .then((result) => {
             return this.send(pack.event, result, pack.id)
           })
@@ -38,7 +53,17 @@ export class Page extends Socket {
         break
       }
       case 'page.waitForSelector': {
-        this.onWaitForSelector(pack)
+        this.onCmdWaitForSelector(pack)
+          .then((result) => {
+            return this.send(pack.event, result, pack.id)
+          })
+          .catch((e: Error) => {
+            return this.send(pack.event, e.message, pack.id, true)
+          })
+        break
+      }
+      case 'page.type': {
+        this.onCmdType(pack)
           .then((result) => {
             return this.send(pack.event, result, pack.id)
           })
@@ -59,7 +84,7 @@ export class Page extends Socket {
     }
   }
 
-  private async onWaitForSelector(pack: FromServerPageWaitForSelectorSocketPack): Promise<void> {
+  private async onCmdWaitForSelector(pack: FromServerPageWaitForSelectorSocketPack): Promise<void> {
     await tryDo({
       handler: async () => {
         const val = await this.executeScript<boolean>((selector: string) => {
@@ -74,10 +99,34 @@ export class Page extends Socket {
     })
   }
 
-  private async onEvaluate(pack: FromServerPageEvaluateSocketPack): Promise<never> {
+  private async onCmdEvaluate(pack: FromServerPageEvaluateSocketPack): Promise<never> {
     return this.executeScript(function (code: string) {
       return window._callCodev8ds9v8929n2pvnb2fi3n(code)
     }, pack.data.code)
+  }
+
+  private async onCmdType(pack: FromServerPageTypeSocketPack): Promise<void> {
+    const { x, y } = await this.executeScript(function (pack: FromServerPageTypeSocketPack) {
+      const el = document.querySelector(pack.data.selector)
+      if (!el) {
+        throw new Error(`${pack.data.selector} not found`)
+      }
+      const rect = el.getBoundingClientRect()
+      const x = rect.left + rect.width / 2
+      const y = rect.top + rect.height / 2
+      return {
+        x,
+        y,
+      }
+    }, pack)
+    await new Promise<void>((resolve) => {
+      chrome.debugger.attach({ tabId: this.tab.id }, '1.2', () => {
+        resolve()
+      })
+    })
+    await this.mouse.click(x, y)
+    await this.keyboard.type(pack.data.text, pack.data.options)
+    await chrome.debugger.detach({ tabId: this.tab.id })
   }
 
   public async close(): Promise<void> {

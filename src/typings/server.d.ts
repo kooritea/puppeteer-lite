@@ -1,3 +1,5 @@
+import { KeyboardTypeOptions } from './puppeteer'
+
 type SeverPageEvent =
   | 'page.auth'
   | 'page.evaluate'

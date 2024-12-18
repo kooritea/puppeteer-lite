@@ -138,7 +138,7 @@ export class Page extends Socket {
         }
       },
       interval: 500,
-      timeout: 5000,
+      timeout: pack.data.options?.timeout || 30000,
     })
   }
 
@@ -198,7 +198,7 @@ export class Page extends Socket {
           _isExecuteScriptError: boolean
           message: string
         }
-        if (result._isExecuteScriptError) {
+        if (result?._isExecuteScriptError) {
           throw new Error(result.message)
         } else {
           return result as Result

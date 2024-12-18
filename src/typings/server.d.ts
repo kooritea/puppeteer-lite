@@ -1,5 +1,5 @@
 import { ClickOptions } from 'puppeteer-core'
-import { KeyboardTypeOptions } from './puppeteer'
+import { KeyboardTypeOptions, WaitForSelectorOptions } from './puppeteer'
 
 type SeverPageEvent =
   | 'page.auth'
@@ -35,6 +35,7 @@ interface FromServerPageWaitForSelectorSocketPack extends SocketPack {
   id: string
   data: {
     selector: string
+    options?: WaitForSelectorOptions
   }
 }
 interface FromServerPageTypeSocketPack extends SocketPack {

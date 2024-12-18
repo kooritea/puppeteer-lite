@@ -361,3 +361,33 @@ export type Awaited<T> = T extends null | undefined
       ? Awaited<V> // recursively unwrap the value
       : never // the argument to `then` was not callable
     : T // non-object or non-thenable
+
+export interface WaitForSelectorOptions {
+  /**
+   * Wait for the selected element to be present in DOM and to be visible. See
+   * {@link ElementHandle.isVisible} for the definition of element visibility.
+   *
+   * @defaultValue `false`
+   */
+  // visible?: boolean
+  /**
+   * Wait for the selected element to not be found in the DOM or to be hidden.
+   * See {@link ElementHandle.isHidden} for the definition of element
+   * invisibility.
+   *
+   * @defaultValue `false`
+   */
+  // hidden?: boolean
+  /**
+   * Maximum time to wait in milliseconds. Pass `0` to disable timeout.
+   *
+   * The default value can be changed by using {@link Page.setDefaultTimeout}
+   *
+   * @defaultValue `30_000` (30 seconds)
+   */
+  timeout?: number
+  /**
+   * A signal object that allows you to cancel a waitForSelector call.
+   */
+  // signal?: AbortSignal
+}

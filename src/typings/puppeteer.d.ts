@@ -15,6 +15,17 @@ export interface Point {
   y: number
 }
 
+export interface BoundingBox extends Point {
+  /**
+   * the width of the element in pixels.
+   */
+  width: number
+  /**
+   * the height of the element in pixels.
+   */
+  height: number
+}
+
 export interface MouseMoveOptions {
   /**
    * Determines the number of movements to make from the current mouse position
@@ -37,14 +48,6 @@ export interface MouseOptions {
    * @defaultValue `'left'`
    */
   button?: MouseButton
-  /**
-   * Determines the click count for the mouse event. This does not perform
-   * multiple clicks.
-   *
-   * @deprecated Use {@link MouseClickOptions.count}.
-   * @defaultValue `1`
-   */
-  clickCount?: number
 }
 
 export interface MouseClickOptions extends MouseOptions {
@@ -332,3 +335,29 @@ export type KeyInput =
 export interface KeyboardTypeOptions {
   delay?: number
 }
+
+export interface Offset {
+  /**
+   * x-offset for the clickable point relative to the top-left corner of the border box.
+   */
+  x: number
+  /**
+   * y-offset for the clickable point relative to the top-left corner of the border box.
+   */
+  y: number
+}
+
+export interface ClickOptions extends MouseClickOptions {
+  /**
+   * Offset for the clickable point relative to the top-left corner of the border box.
+   */
+  offset?: Offset
+}
+
+export type Awaited<T> = T extends null | undefined
+  ? T // special case for `null | undefined` when not in `--strictNullChecks` mode
+  : T extends object & { then(onfulfilled: infer F, ...args: infer _): never } // `await` only unwraps object types with a callable `then`. Non-object types are not unwrapped
+    ? F extends (value: infer V, ...args: infer _) => never // if the argument to `then` is callable, extracts the first argument
+      ? Awaited<V> // recursively unwrap the value
+      : never // the argument to `then` was not callable
+    : T // non-object or non-thenable

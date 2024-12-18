@@ -5,6 +5,6 @@ await esbuild.build({
   bundle: true,
   platform: 'node',
   target: 'esnext',
-  format: 'esm',
+  format: 'cjs',
   outdir: 'dist',
 })

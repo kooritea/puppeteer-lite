@@ -1,17 +1,21 @@
 import {
+  FromServerPageClickSocketPack,
   FromServerPageEvaluateSocketPack,
   FromServerPageTypeSocketPack,
   FromServerPageWaitForSelectorSocketPack,
   FromServerSocketPack,
 } from 'src/typings/server.js'
+import { ElementHandle } from '../handle/element.handle.js'
 import { tryDo } from '../utils.js'
 import { ExtKeyboard, ExtMouse } from './Input.js'
 import { Socket } from './socket.model.js'
 
 export class Page extends Socket {
+  public keyboard: ExtKeyboard
+  public mouse: ExtMouse
+  public tabId: number
+
   private closeSignalId: string | undefined
-  private keyboard: ExtKeyboard
-  private mouse: ExtMouse
 
   constructor(
     public tab: chrome.tabs.Tab,
@@ -22,8 +26,9 @@ export class Page extends Socket {
     if (!tab.id) {
       throw new Error('not found tab.id')
     }
-    this.keyboard = new ExtKeyboard(tab.id)
-    this.mouse = new ExtMouse(this.keyboard, tab.id)
+    this.tabId = tab.id
+    this.keyboard = new ExtKeyboard(this.tabId)
+    this.mouse = new ExtMouse(this.keyboard, this.tabId)
   }
 
   protected createSocketOpenPack(token: string): string {
@@ -72,13 +77,21 @@ export class Page extends Socket {
           })
         break
       }
-      case 'page.close': {
-        this.closeSignalId = pack.id
-        if (this.tab.id) {
-          chrome.tabs.remove(this.tab.id).catch((e: Error) => {
+      case 'page.click': {
+        this.onCmdClick(pack)
+          .then((result) => {
+            return this.send(pack.event, result, pack.id)
+          })
+          .catch((e: Error) => {
             return this.send(pack.event, e.message, pack.id, true)
           })
-        }
+        break
+      }
+      case 'page.close': {
+        this.closeSignalId = pack.id
+        chrome.tabs.remove(this.tabId).catch((e: Error) => {
+          return this.send(pack.event, e.message, pack.id, true)
+        })
         break
       }
     }
@@ -87,7 +100,7 @@ export class Page extends Socket {
   private async onCmdWaitForSelector(pack: FromServerPageWaitForSelectorSocketPack): Promise<void> {
     await tryDo({
       handler: async () => {
-        const val = await this.executeScript<boolean>((selector: string) => {
+        const val = await this.executeScript(function (selector: string) {
           return !!document.querySelector(selector)
         }, pack.data.selector)
         if (!val) {
@@ -106,27 +119,31 @@ export class Page extends Socket {
   }
 
   private async onCmdType(pack: FromServerPageTypeSocketPack): Promise<void> {
-    const { x, y } = await this.executeScript(function (pack: FromServerPageTypeSocketPack) {
+    await this.executeScript(function (pack: FromServerPageTypeSocketPack) {
       const el = document.querySelector(pack.data.selector)
-      if (!el) {
-        throw new Error(`${pack.data.selector} not found`)
+      if (!(el instanceof HTMLElement)) {
+        throw new Error('Cannot focus non-HTMLElement')
       }
-      const rect = el.getBoundingClientRect()
-      const x = rect.left + rect.width / 2
-      const y = rect.top + rect.height / 2
-      return {
-        x,
-        y,
-      }
+      el.focus()
     }, pack)
     await new Promise<void>((resolve) => {
-      chrome.debugger.attach({ tabId: this.tab.id }, '1.2', () => {
+      chrome.debugger.attach({ tabId: this.tabId }, '1.2', () => {
         resolve()
       })
     })
-    await this.mouse.click(x, y)
     await this.keyboard.type(pack.data.text, pack.data.options)
-    await chrome.debugger.detach({ tabId: this.tab.id })
+    await chrome.debugger.detach({ tabId: this.tabId })
+  }
+
+  private async onCmdClick(pack: FromServerPageClickSocketPack): Promise<void> {
+    await new Promise<void>((resolve) => {
+      chrome.debugger.attach({ tabId: this.tabId }, '1.2', () => {
+        resolve()
+      })
+    })
+    const elementHandle = new ElementHandle(this, pack.data.selector)
+    await elementHandle.click()
+    await chrome.debugger.detach({ tabId: this.tabId })
   }
 
   public async close(): Promise<void> {
@@ -134,24 +151,20 @@ export class Page extends Socket {
     super.close()
   }
 
-  private async executeScript<T>(
-    func: (...args: never) => T | Promise<T>,
-    ...args: unknown[]
-  ): Promise<T> {
-    if (this.tab.id) {
-      return chrome.scripting
-        .executeScript({
-          target: { tabId: this.tab.id },
-          injectImmediately: true,
-          world: 'MAIN',
-          func,
-          args: args as never,
-        })
-        .then((data) => {
-          return data[0].result as T
-        })
-    } else {
-      throw new Error('not found tab id')
-    }
+  private async executeScript<Params extends unknown[], Result>(
+    func: (...args: Params) => Result,
+    ...args: Params
+  ): Promise<Result> {
+    return chrome.scripting
+      .executeScript({
+        target: { tabId: this.tabId },
+        injectImmediately: true,
+        world: 'MAIN',
+        func,
+        args,
+      })
+      .then((data) => {
+        return data[0].result as Promise<Result>
+      })
   }
 }

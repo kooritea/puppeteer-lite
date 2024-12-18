@@ -1,3 +1,4 @@
+import { ClickOptions } from 'puppeteer-core'
 import { KeyboardTypeOptions } from './puppeteer'
 
 type SeverPageEvent =
@@ -5,6 +6,7 @@ type SeverPageEvent =
   | 'page.evaluate'
   | 'page.waitForSelector'
   | 'page.type'
+  | 'page.click'
   | 'page.close'
 type SeverBrowserEvent =
   | 'browser.auth'
@@ -44,6 +46,14 @@ interface FromServerPageTypeSocketPack extends SocketPack {
     options?: KeyboardTypeOptions
   }
 }
+interface FromServerPageClickSocketPack extends SocketPack {
+  event: 'page.click'
+  id: string
+  data: {
+    selector: string
+    options?: ClickOptions
+  }
+}
 interface FromServerPageCloseSocketPack extends SocketPack {
   event: 'page.close'
   id: string
@@ -75,8 +85,9 @@ interface FromServerBrowserCloseSocketPack extends SocketPack {
 type FromServerSocketPack =
   | FromServerPageAuthSocketPack
   | FromServerPageEvaluateSocketPack
-  | FromServerPageTypeSocketPack
   | FromServerPageWaitForSelectorSocketPack
+  | FromServerPageTypeSocketPack
+  | FromServerPageClickSocketPack
   | FromServerPageCloseSocketPack
   | FromServerBrowserAuthSocketPack
   | FromServerBrowserCreateChildBrowserSocketPack

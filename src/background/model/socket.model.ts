@@ -1,14 +1,23 @@
 import { FromServerSocketPack } from 'src/typings/server.js'
 import { getAuth } from '../utils.js'
 
-export class Socket extends EventTarget {
+export abstract class Socket extends EventTarget {
   private socket: WebSocket | null = null
   private status: 'WAIT' | 'OPEN' | 'CLOSED' = 'WAIT'
   private isFirstOpen = true
   constructor(public serverURL: string) {
     super()
-    this.connection()
+    this.beforeConnect()
+      .then(() => {
+        this.connection()
+      })
+      .catch((e) => {
+        console.error(e)
+        this.close()
+      })
   }
+
+  protected async beforeConnect(): Promise<void> {}
 
   private connection(): void {
     this.socket = new WebSocket(this.serverURL)

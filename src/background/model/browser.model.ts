@@ -69,7 +69,9 @@ export class Browser extends Socket {
   private onCreatePage(pack: FromServerBrowserCreatePageSocketPack): void {
     chrome.tabs.create({ url: pack.data.url }, (tab) => {
       const page = new Page(tab, pack.data.pageId, this.serverURL)
-      this.pages.push(page)
+      page.addEventListener('connect_success', () => {
+        this.pages.push(page)
+      })
     })
   }
 

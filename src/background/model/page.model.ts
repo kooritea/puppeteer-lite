@@ -34,9 +34,15 @@ export class Page extends Socket {
   protected override beforeConnect(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const intervalTimer = setInterval(() => {
-        this.executeScript(function () {
-          return !!window._callCodev8ds9v8929n2pvnb2fi3n
-        })
+        chrome.scripting
+          .executeScript({
+            target: { tabId: this.tabId },
+            injectImmediately: true,
+            world: 'MAIN',
+            func: () => {
+              return !!window._callCodev8ds9v8929n2pvnb2fi3n
+            },
+          })
           .then((isInject) => {
             if (isInject) {
               clearInterval(intervalTimer)
@@ -124,7 +130,7 @@ export class Page extends Socket {
   private async onCmdWaitForSelector(pack: FromServerPageWaitForSelectorSocketPack): Promise<void> {
     await tryDo({
       handler: async () => {
-        const val = await this.executeScript(function (selector: string) {
+        const val = await this.executeScript((selector: string) => {
           return !!document.querySelector(selector)
         }, pack.data.selector)
         if (!val) {
@@ -136,14 +142,12 @@ export class Page extends Socket {
     })
   }
 
-  private async onCmdEvaluate(pack: FromServerPageEvaluateSocketPack): Promise<never> {
-    return this.executeScript(function (code: string) {
-      return window._callCodev8ds9v8929n2pvnb2fi3n(code)
-    }, pack.data.code)
+  private async onCmdEvaluate(pack: FromServerPageEvaluateSocketPack): Promise<unknown> {
+    return this.executeScript(pack.data.code)
   }
 
   private async onCmdType(pack: FromServerPageTypeSocketPack): Promise<void> {
-    await this.executeScript(function (pack: FromServerPageTypeSocketPack) {
+    await this.executeScript((pack: FromServerPageTypeSocketPack) => {
       const el = document.querySelector(pack.data.selector)
       if (!(el instanceof HTMLElement)) {
         throw new Error('Cannot focus non-HTMLElement')
@@ -176,7 +180,7 @@ export class Page extends Socket {
   }
 
   private async executeScript<Params extends unknown[], Result>(
-    func: (...args: Params) => Result,
+    func: string | ((...args: Params) => Result),
     ...args: Params
   ): Promise<Result> {
     return chrome.scripting
@@ -184,11 +188,21 @@ export class Page extends Socket {
         target: { tabId: this.tabId },
         injectImmediately: true,
         world: 'MAIN',
-        func,
-        args,
+        func: (code: string, ...args: Params) => {
+          return window._callCodev8ds9v8929n2pvnb2fi3n(code, ...args) as Awaited<Result>
+        },
+        args: [func.toString(), ...args],
       })
       .then((data) => {
-        return data[0].result as Promise<Result>
+        const result = data[0].result as {
+          _isExecuteScriptError: boolean
+          message: string
+        }
+        if (result._isExecuteScriptError) {
+          throw new Error(result.message)
+        } else {
+          return result as Result
+        }
       })
   }
 }

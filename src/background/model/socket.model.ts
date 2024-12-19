@@ -5,8 +5,17 @@ export abstract class Socket extends EventTarget {
   private socket: WebSocket | null = null
   private status: 'WAIT' | 'OPEN' | 'CLOSED' = 'WAIT'
   private isFirstOpen = true
-  constructor(public serverURL: string) {
+  constructor(
+    public serverURL: string,
+    immediate: boolean
+  ) {
     super()
+    if (immediate) {
+      this.connect()
+    }
+  }
+
+  public connect(): void {
     this.beforeConnect()
       .then(() => {
         this.connection()

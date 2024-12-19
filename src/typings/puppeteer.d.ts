@@ -391,3 +391,23 @@ export interface WaitForSelectorOptions {
    */
   // signal?: AbortSignal
 }
+
+interface FetchRequestPausedParams {
+  frameId: string
+  requestId: string
+  resourceType: 'Document'
+  request: {
+    initialPriority: 'VeryLow' | 'Low' | 'Medium' | 'High' | 'VeryHigh'
+    method: 'GET' | 'POST' | string
+    referrerPolicy:
+      | 'unsafe-url'
+      | 'no-referrer-when-downgrade'
+      | 'no-referrer'
+      | 'origin'
+      | 'origin-when-cross-origin'
+      | 'same-origin'
+      | 'strict-origin'
+      | 'strict-origin-when-cross-origin'
+    url: string
+  }
+}

@@ -7,6 +7,7 @@ import {
 } from 'src/typings/server.js'
 import { ElementHandle } from '../handle/element.handle.js'
 import { DebuggerManager } from '../Manager/DebuggerManager.js'
+import { NetworkManager } from '../Manager/NetworkManager.js'
 import { tryDo } from '../utils.js'
 import { ExtKeyboard, ExtMouse } from './Input.js'
 import { Socket } from './socket.model.js'
@@ -14,6 +15,7 @@ import { Socket } from './socket.model.js'
 export class Page extends Socket {
   public keyboard: ExtKeyboard
   public mouse: ExtMouse
+  public networkManager: NetworkManager
   public tabId: number
 
   private closeSignalId: string | undefined
@@ -23,13 +25,14 @@ export class Page extends Socket {
     private pageId: string,
     serverURL: string
   ) {
-    super(serverURL)
+    super(serverURL, false)
     if (!tab.id) {
       throw new Error('not found tab.id')
     }
     this.tabId = tab.id
     this.keyboard = new ExtKeyboard(this.tabId)
     this.mouse = new ExtMouse(this.keyboard, this.tabId)
+    this.networkManager = new NetworkManager(this.tabId)
   }
 
   protected createSocketOpenPack(token: string): string {
@@ -143,6 +146,12 @@ export class Page extends Socket {
       url,
     })
     await DebuggerManager.detach(attachId)
+    await chrome.scripting.executeScript({
+      target: { tabId: this.tabId },
+      injectImmediately: true,
+      world: 'MAIN',
+      files: ['dist/page/main_document_start.js'],
+    })
   }
 
   public async close(): Promise<void> {

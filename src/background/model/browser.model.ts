@@ -11,7 +11,7 @@ export class Browser extends Socket {
   private pages: Array<Page> = []
   private emitCreateChilBrowser: (serverURL: string) => Promise<Browser>
   constructor(serverURL: string, onCreateChildBrowser: (serverURL: string) => Promise<Browser>) {
-    super(serverURL)
+    super(serverURL, true)
     this.emitCreateChilBrowser = onCreateChildBrowser
   }
 
@@ -69,28 +69,18 @@ export class Browser extends Socket {
   }
 
   private async onCreatePage(pack: FromServerBrowserCreatePageSocketPack): Promise<void> {
-    const tab = await chrome.tabs.create({ url: pack.data.url })
-    const data = await chrome.scripting.executeScript({
-      target: { tabId: tab.id as number },
-      injectImmediately: true,
-      world: 'MAIN',
-      files: ['dist/page/main_document_start.js'],
-    })
-    const result = data[0].result as {
-      _isExecuteScriptError: boolean
-      message: string
+    const tab = await chrome.tabs.create({ url: 'about:blank' })
+    const page = new Page(tab, pack.data.pageId, this.serverURL)
+    if (pack.data.url) {
+      await page.goto(pack.data.url)
     }
-    if (result?._isExecuteScriptError) {
-      throw new Error(result.message)
-    } else {
-      const page = new Page(tab, pack.data.pageId, this.serverURL)
-      await new Promise<void>((resolve) => {
-        page.addEventListener('connect_success', () => {
-          this.pages.push(page)
-          resolve()
-        })
+    page.connect()
+    await new Promise<void>((resolve) => {
+      page.addEventListener('connect_success', () => {
+        this.pages.push(page)
+        resolve()
       })
-    }
+    })
   }
 
   public async removePage(tabId: number): Promise<void> {

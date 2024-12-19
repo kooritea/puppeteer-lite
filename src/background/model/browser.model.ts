@@ -47,7 +47,9 @@ export class Browser extends Socket {
         break
       }
       case 'browser.createPage': {
-        this.onCreatePage(pack)
+        this.onCreatePage(pack).catch((e: Error) => {
+          return this.send(pack.event, e.message, pack.id, true)
+        })
         break
       }
       case 'browser.close': {
@@ -66,33 +68,29 @@ export class Browser extends Socket {
     await this.emitCreateChilBrowser(pack.data.serverURL)
   }
 
-  private onCreatePage(pack: FromServerBrowserCreatePageSocketPack): void {
-    chrome.tabs.create({ url: pack.data.url }, (tab) => {
-      chrome.scripting
-        .executeScript({
-          target: { tabId: tab.id as number },
-          injectImmediately: true,
-          world: 'MAIN',
-          files: ['dist/page/main_document_start.js'],
-        })
-        .then((data) => {
-          const result = data[0].result as {
-            _isExecuteScriptError: boolean
-            message: string
-          }
-          if (result?._isExecuteScriptError) {
-            throw new Error(result.message)
-          } else {
-            const page = new Page(tab, pack.data.pageId, this.serverURL)
-            page.addEventListener('connect_success', () => {
-              this.pages.push(page)
-            })
-          }
-        })
-        .catch((e) => {
-          console.error(e)
-        })
+  private async onCreatePage(pack: FromServerBrowserCreatePageSocketPack): Promise<void> {
+    const tab = await chrome.tabs.create({ url: pack.data.url })
+    const data = await chrome.scripting.executeScript({
+      target: { tabId: tab.id as number },
+      injectImmediately: true,
+      world: 'MAIN',
+      files: ['dist/page/main_document_start.js'],
     })
+    const result = data[0].result as {
+      _isExecuteScriptError: boolean
+      message: string
+    }
+    if (result?._isExecuteScriptError) {
+      throw new Error(result.message)
+    } else {
+      const page = new Page(tab, pack.data.pageId, this.serverURL)
+      await new Promise<void>((resolve) => {
+        page.addEventListener('connect_success', () => {
+          this.pages.push(page)
+          resolve()
+        })
+      })
+    }
   }
 
   public async removePage(tabId: number): Promise<void> {

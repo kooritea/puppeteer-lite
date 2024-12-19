@@ -6,6 +6,7 @@ import {
   FromServerSocketPack,
 } from 'src/typings/server.js'
 import { ElementHandle } from '../handle/element.handle.js'
+import { DebuggerManager } from '../Manager/DebuggerManager.js'
 import { tryDo } from '../utils.js'
 import { ExtKeyboard, ExtMouse } from './Input.js'
 import { Socket } from './socket.model.js'
@@ -124,24 +125,24 @@ export class Page extends Socket {
       }
       el.focus()
     }, pack)
-    await new Promise<void>((resolve) => {
-      chrome.debugger.attach({ tabId: this.tabId }, '1.2', () => {
-        resolve()
-      })
-    })
+    const attachId = await DebuggerManager.attach(this.tabId)
     await this.keyboard.type(pack.data.text, pack.data.options)
-    await chrome.debugger.detach({ tabId: this.tabId })
+    await DebuggerManager.detach(attachId)
   }
 
   private async onCmdClick(pack: FromServerPageClickSocketPack): Promise<void> {
-    await new Promise<void>((resolve) => {
-      chrome.debugger.attach({ tabId: this.tabId }, '1.2', () => {
-        resolve()
-      })
-    })
+    const attachId = await DebuggerManager.attach(this.tabId)
     const elementHandle = new ElementHandle(this, pack.data.selector)
     await elementHandle.click()
-    await chrome.debugger.detach({ tabId: this.tabId })
+    await DebuggerManager.detach(attachId)
+  }
+
+  public async goto(url: string): Promise<void> {
+    const attachId = await DebuggerManager.attach(this.tabId)
+    await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Page.navigate', {
+      url,
+    })
+    await DebuggerManager.detach(attachId)
   }
 
   public async close(): Promise<void> {

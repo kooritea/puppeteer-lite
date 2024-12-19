@@ -1,6 +1,8 @@
+import { GotoOptions } from 'src/typings/puppeteer.js'
 import {
   FromServerPageClickSocketPack,
   FromServerPageEvaluateSocketPack,
+  FromServerPageGotoSocketPack,
   FromServerPageTypeSocketPack,
   FromServerPageWaitForSelectorSocketPack,
   FromServerSocketPack,
@@ -91,6 +93,16 @@ export class Page extends Socket {
           })
         break
       }
+      case 'page.goto': {
+        this.onCmdGoto(pack)
+          .then((result) => {
+            return this.send(pack.event, result, pack.id)
+          })
+          .catch((e: Error) => {
+            return this.send(pack.event, e.message, pack.id, true)
+          })
+        break
+      }
       case 'page.close': {
         this.closeSignalId = pack.id
         chrome.tabs.remove(this.tabId).catch((e: Error) => {
@@ -140,10 +152,15 @@ export class Page extends Socket {
     await DebuggerManager.detach(attachId)
   }
 
-  public async goto(url: string): Promise<void> {
+  private async onCmdGoto(pack: FromServerPageGotoSocketPack): Promise<void> {
+    await this.goto(pack.data.url, pack.data.options)
+  }
+
+  public async goto(url: string, options?: GotoOptions): Promise<void> {
     const attachId = await DebuggerManager.attach(this.tabId)
     await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Page.navigate', {
       url,
+      ...options,
     })
     await DebuggerManager.detach(attachId)
     await chrome.scripting.executeScript({

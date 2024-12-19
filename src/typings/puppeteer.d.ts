@@ -411,3 +411,8 @@ interface FetchRequestPausedParams {
     url: string
   }
 }
+
+interface GotoOptions {
+  referrer?: string
+  referrerPolicy?: string
+}

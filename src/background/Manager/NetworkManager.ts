@@ -26,6 +26,7 @@ export class NetworkManager {
   }
 
   public async disable(): Promise<void> {
+    await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.disable')
     await DebuggerManager.detach(this.attachId)
     chrome.debugger.onEvent.removeListener(this.onEventHandler)
   }
@@ -35,11 +36,15 @@ export class NetworkManager {
   }
   public async continue(): Promise<void> {
     this.isPause = false
-    for (const request of this.requestQueue) {
-      await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.continueRequest', {
-        requestId: request.requestId,
+    const requestQueue = this.requestQueue
+    this.requestQueue = []
+    await Promise.all(
+      requestQueue.map((request) => {
+        return chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.continueRequest', {
+          requestId: request.requestId,
+        })
       })
-    }
+    )
   }
 
   private async onEvent(

@@ -77,6 +77,9 @@ export abstract class Socket extends EventTarget {
     id?: string,
     isError: boolean = false
   ): Promise<void> {
+    if (isError) {
+      console.error(event, data)
+    }
     await this.isOpen()
     return new Promise((resolve, reject) => {
       setTimeout(() => {

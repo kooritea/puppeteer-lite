@@ -31,36 +31,6 @@ export class Page extends Socket {
     this.mouse = new ExtMouse(this.keyboard, this.tabId)
   }
 
-  protected override beforeConnect(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      const intervalTimer = setInterval(() => {
-        chrome.scripting
-          .executeScript({
-            target: { tabId: this.tabId },
-            injectImmediately: true,
-            world: 'MAIN',
-            func: () => {
-              return !!window._callCodev8ds9v8929n2pvnb2fi3n
-            },
-          })
-          .then((isInject) => {
-            if (isInject) {
-              clearInterval(intervalTimer)
-              clearTimeout(timeoutTimer)
-              resolve()
-            }
-          })
-          .catch((e) => {
-            reject(e)
-          })
-      }, 100)
-      const timeoutTimer = setTimeout(() => {
-        clearInterval(intervalTimer)
-        reject(new Error('Inject content script timeout'))
-      }, 30000)
-    })
-  }
-
   protected createSocketOpenPack(token: string): string {
     return JSON.stringify({
       event: 'page.create',

@@ -68,10 +68,30 @@ export class Browser extends Socket {
 
   private onCreatePage(pack: FromServerBrowserCreatePageSocketPack): void {
     chrome.tabs.create({ url: pack.data.url }, (tab) => {
-      const page = new Page(tab, pack.data.pageId, this.serverURL)
-      page.addEventListener('connect_success', () => {
-        this.pages.push(page)
-      })
+      chrome.scripting
+        .executeScript({
+          target: { tabId: tab.id as number },
+          injectImmediately: true,
+          world: 'MAIN',
+          files: ['dist/page/main_document_start.js'],
+        })
+        .then((data) => {
+          const result = data[0].result as {
+            _isExecuteScriptError: boolean
+            message: string
+          }
+          if (result?._isExecuteScriptError) {
+            throw new Error(result.message)
+          } else {
+            const page = new Page(tab, pack.data.pageId, this.serverURL)
+            page.addEventListener('connect_success', () => {
+              this.pages.push(page)
+            })
+          }
+        })
+        .catch((e) => {
+          console.error(e)
+        })
     })
   }
 

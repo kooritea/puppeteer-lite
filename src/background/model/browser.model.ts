@@ -20,6 +20,11 @@ export class Browser extends Socket {
       event: 'browser.create',
       data: {
         auth: token,
+        pages: this.pages.map((page) => {
+          return {
+            pageId: page.pageId,
+          }
+        }),
       },
     })
   }
@@ -70,8 +75,12 @@ export class Browser extends Socket {
 
   private async onCreatePage(pack: FromServerBrowserCreatePageSocketPack): Promise<void> {
     const tab = await chrome.tabs.create({ url: 'about:blank' })
-    const page = new Page(tab, pack.data.pageId, this.serverURL)
-    if (pack.data.url) {
+    const page = new Page(
+      tab,
+      pack.data?.pageId || `page.${Date.now() + Math.random()}`,
+      this.serverURL
+    )
+    if (pack.data?.url) {
       await page.goto(pack.data.url)
     }
     page.connect()
@@ -89,7 +98,7 @@ export class Browser extends Socket {
     })
     const page = this.pages[pageIndex]
     if (page) {
-      this.pages = this.pages.splice(pageIndex, 1)
+      this.pages.splice(pageIndex, 1)
       await page.close()
     }
   }

@@ -24,7 +24,7 @@ export class Page extends Socket {
 
   constructor(
     public tab: chrome.tabs.Tab,
-    private pageId: string,
+    public pageId: string,
     serverURL: string
   ) {
     super(serverURL, false)

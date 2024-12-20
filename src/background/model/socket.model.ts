@@ -81,17 +81,17 @@ export abstract class Socket extends EventTarget {
       console.error(event, data)
     }
     await this.isOpen()
+    this.socket?.send(
+      JSON.stringify({
+        event,
+        id,
+        data,
+        isError,
+      })
+    )
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         try {
-          this.socket?.send(
-            JSON.stringify({
-              event,
-              id,
-              data,
-              isError,
-            })
-          )
           resolve()
         } catch (e) {
           reject(e)

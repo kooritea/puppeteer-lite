@@ -82,9 +82,9 @@ interface FromServerBrowserCreateChildBrowserSocketPack extends SocketPack {
 interface FromServerBrowserCreatePageSocketPack extends SocketPack {
   event: 'browser.createPage'
   id: string
-  data: {
-    url: string
-    pageId: string
+  data?: {
+    url?: string
+    pageId?: string
   }
 }
 interface FromServerBrowserCloseSocketPack extends SocketPack {

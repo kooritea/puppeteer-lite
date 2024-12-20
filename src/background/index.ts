@@ -49,17 +49,13 @@ chrome.runtime.onInstalled.addListener(() => {
   })
 })
 chrome.alarms.onAlarm.addListener(() => {
-  masterBrowser?.ping()
-  for (const child of Browsers) {
-    child.ping()
+  for (const browser of Browsers) {
+    browser.ping()
   }
 })
 chrome.tabs.onRemoved.addListener(function (tabId) {
-  masterBrowser?.removePage(tabId).catch((e) => {
-    console.error(e)
-  })
-  for (const child of Browsers) {
-    child.removePage(tabId).catch((e) => {
+  for (const browser of Browsers) {
+    browser.removePage(tabId).catch((e) => {
       console.error(e)
     })
   }

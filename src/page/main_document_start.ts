@@ -27,9 +27,13 @@
       }
     }
   }
-})().catch((e) => {
-  return {
-    _isExecuteScriptError: true,
-    message: e instanceof Error ? e.message : String(e),
-  }
-})
+})()
+  .then(() => {
+    window._callCodeInjected2hd9wihd932h32f = true
+  })
+  .catch((e) => {
+    return {
+      _isExecuteScriptError: true,
+      message: e instanceof Error ? e.message : String(e),
+    }
+  })

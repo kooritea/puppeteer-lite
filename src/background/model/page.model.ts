@@ -163,11 +163,17 @@ export class Page extends Socket {
       ...options,
     })
     await DebuggerManager.detach(attachId)
-    await chrome.scripting.executeScript({
-      target: { tabId: this.tabId },
-      injectImmediately: true,
-      world: 'MAIN',
-      files: ['dist/page/main_document_start.js'],
+    await tryDo({
+      handler: async () => {
+        const val = await this.executeScript(() => {
+          return !!window._callCodeInjected2hd9wihd932h32f
+        })
+        if (!val) {
+          throw new Error(`content script inject error`)
+        }
+      },
+      interval: 500,
+      timeout: 30000,
     })
   }
 

@@ -15,7 +15,7 @@ module.exports = {
   env: {
     node: false,
   },
-  ignorePatterns: ['.eslintrc.js'],
+  ignorePatterns: ['.eslintrc.js','test.mjs'],
   rules: {
     // '@typescript-eslint/explicit-module-boundary-types': 'off',
     // '@typescript-eslint/no-explicit-any': 'off',

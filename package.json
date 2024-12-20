@@ -4,6 +4,7 @@
   "description": "使用chrome扩展实现类似puppeteer的远程自动控制",
   "scripts": {
     "build": "node ./build.mjs",
+    "test": "node ./test.mjs",
     "prebuild": "rimraf dist"
   },
   "author": "",
@@ -18,7 +19,8 @@
     "eslint-plugin-prettier": "^5.0.1",
     "prettier": "^3.0.3",
     "prettier-plugin-organize-imports": "^3.2.3",
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "ws": "^8.18.0"
   },
   "dependencies": {
     "puppeteer-core": "^23.10.4"

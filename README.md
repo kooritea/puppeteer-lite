@@ -17,5 +17,16 @@ npm i
 - 2、写配置文件 src/config.ts
 
 
+- 3、编译
+```shell
+npm run build
+```
 
-- 3、使用chrome扩展开发者模式，加载项目根目录
+
+- 4、使用chrome扩展开发者模式，加载项目根目录
+
+
+- 5、运行本地测试
+```shell
+npm run test
+```

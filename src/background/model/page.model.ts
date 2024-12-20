@@ -3,6 +3,7 @@ import {
   FromServerPageClickSocketPack,
   FromServerPageEvaluateSocketPack,
   FromServerPageGotoSocketPack,
+  FromServerPageKeyboardPressSocketPack,
   FromServerPageTypeSocketPack,
   FromServerPageWaitForSelectorSocketPack,
   FromServerSocketPack,
@@ -110,6 +111,16 @@ export class Page extends Socket {
         })
         break
       }
+      case 'page.keyboard.press': {
+        this.onCmdKeyboardPress(pack)
+          .then((result) => {
+            return this.send(pack.event, result, pack.id)
+          })
+          .catch((e: Error) => {
+            return this.send(pack.event, e.message, pack.id, true)
+          })
+        break
+      }
     }
   }
 
@@ -154,6 +165,12 @@ export class Page extends Socket {
 
   private async onCmdGoto(pack: FromServerPageGotoSocketPack): Promise<void> {
     await this.goto(pack.data.url, pack.data.options)
+  }
+
+  private async onCmdKeyboardPress(pack: FromServerPageKeyboardPressSocketPack): Promise<void> {
+    const attachId = await DebuggerManager.attach(this.tabId)
+    await this.keyboard.press(pack.data.key, pack.data.options)
+    await DebuggerManager.detach(attachId)
   }
 
   public async goto(url: string, options?: GotoOptions): Promise<void> {

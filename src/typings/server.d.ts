@@ -1,7 +1,13 @@
 import { ClickOptions } from 'puppeteer-core'
-import { GotoOptions, KeyboardTypeOptions, WaitForSelectorOptions } from './puppeteer'
+import {
+  GotoOptions,
+  KeyboardTypeOptions,
+  KeyInput,
+  KeyPressOptions,
+  WaitForSelectorOptions,
+} from './puppeteer'
 
-type SeverPageEvent =
+type ServerPageEvent =
   | 'page.auth'
   | 'page.evaluate'
   | 'page.waitForSelector'
@@ -9,15 +15,16 @@ type SeverPageEvent =
   | 'page.click'
   | 'page.goto'
   | 'page.close'
-type SeverBrowserEvent =
+type ServerpageKeyboardEvent = 'page.keyboard.press'
+type ServerBrowserEvent =
   | 'browser.auth'
   | 'browser.createChildBrowser'
   | 'browser.createPage'
   | 'browser.close'
-type SeverEvent = SeverPageEvent | SeverBrowserEvent
+type ServerEvent = ServerPageEvent | ServerpageKeyboardEvent | ServerBrowserEvent
 
 interface SocketPack {
-  event: SeverEvent
+  event: ServerEvent
   id?: string
 }
 
@@ -69,6 +76,15 @@ interface FromServerPageCloseSocketPack extends SocketPack {
   id: string
 }
 
+interface FromServerPageKeyboardPressSocketPack extends SocketPack {
+  event: 'page.keyboard.press'
+  id: string
+  data: {
+    key: KeyInput
+    options?: KeyPressOptions
+  }
+}
+
 interface FromServerBrowserAuthSocketPack extends SocketPack {
   event: 'browser.auth'
 }
@@ -100,6 +116,7 @@ type FromServerSocketPack =
   | FromServerPageClickSocketPack
   | FromServerPageGotoSocketPack
   | FromServerPageCloseSocketPack
+  | FromServerPageKeyboardPressSocketPack
   | FromServerBrowserAuthSocketPack
   | FromServerBrowserCreateChildBrowserSocketPack
   | FromServerBrowserCreatePageSocketPack

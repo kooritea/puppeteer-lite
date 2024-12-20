@@ -416,3 +416,8 @@ interface GotoOptions {
   referrer?: string
   referrerPolicy?: string
 }
+interface KeyboardTypeOptions {
+  delay?: number
+}
+
+type KeyPressOptions = KeyboardTypeOptions

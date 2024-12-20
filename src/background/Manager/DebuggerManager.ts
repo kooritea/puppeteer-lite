@@ -60,5 +60,19 @@ class _DebuggerManager {
       waitTab?.resolve()
     }
   }
+
+  public removeTab(tabId: number): void {
+    const index = this.tabQueue.findIndex((tab) => {
+      return tab.tabId === tabId
+    })
+    if (index > -1) {
+      this.tabQueue.splice(index, 1)
+    }
+    if (this.attachTab?.tabId === tabId) {
+      this.attachTab = null
+      this.attaching = []
+      this.attachNext()
+    }
+  }
 }
 export const DebuggerManager = new _DebuggerManager()

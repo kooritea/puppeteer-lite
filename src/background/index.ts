@@ -1,4 +1,5 @@
 import { Config } from '../config.js'
+import { DebuggerManager } from './Manager/DebuggerManager.js'
 import { Browser } from './model/browser.model.js'
 
 let masterBrowser: Browser
@@ -59,4 +60,5 @@ chrome.tabs.onRemoved.addListener(function (tabId) {
       console.error(e)
     })
   }
+  DebuggerManager.removeTab(tabId)
 })

@@ -87,7 +87,7 @@ async function onPageConnect(ws) {
       selector: 'form[action="/search"] textarea',
       text: 'kooritea/puppeteer-lite',
       options: {
-        delay: 500
+        delay: 200
       }
     })
     await send(ws, 'page.keyboard.press', {
@@ -99,16 +99,24 @@ async function onPageConnect(ws) {
     await send(ws, 'page.waitForSelector', {
       selector: '#rso h3',
     })
-    const pageData = await send(ws, 'page.evaluate', {
+    console.log(await send(ws, 'page.evaluate', {
       code: (()=>{
         return Array.from(document.querySelectorAll('#rso h3')).map((item)=>{
           return item.innerText
         })
       }).toString()
-    })
+    }))
     await send(ws, 'page.goto', {
       url: 'https://github.com/kooritea/puppeteer-lite',
     })
+    await send(ws, 'page.waitForSelector', {
+      selector: '.markdown-body.entry-content',
+    })
+    console.log(await send(ws, 'page.evaluate', {
+      code: (()=>{
+        return document.querySelector('.markdown-body.entry-content').innerText
+      }).toString()
+    }))
   } catch (e) {
     console.error(e)
   }

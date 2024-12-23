@@ -1,9 +1,7 @@
 import { FetchRequestPausedParams } from 'src/typings/puppeteer'
-import { DebuggerManager } from './DebuggerManager'
 
 export class NetworkManager {
   private requestQueue: Array<FetchRequestPausedParams> = []
-  private attachId!: string
   private onEventHandler
   private isPause: boolean = false
 
@@ -20,15 +18,13 @@ export class NetworkManager {
   }
 
   public async enable(): Promise<void> {
-    this.attachId = await DebuggerManager.attach(this.tabId)
-    await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.enable')
     chrome.debugger.onEvent.addListener(this.onEventHandler)
+    await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.enable')
   }
 
   public async disable(): Promise<void> {
-    await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.disable')
-    await DebuggerManager.detach(this.attachId)
     chrome.debugger.onEvent.removeListener(this.onEventHandler)
+    await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.disable')
   }
 
   public pause(): void {
@@ -52,7 +48,7 @@ export class NetworkManager {
     method: string,
     _params?: unknown
   ): Promise<void> {
-    if (method === 'Fetch.requestPaused') {
+    if (source.tabId === this.tabId && method === 'Fetch.requestPaused') {
       const params = _params as FetchRequestPausedParams
       if (this.isPause) {
         this.requestQueue.push(params)
@@ -61,8 +57,6 @@ export class NetworkManager {
           requestId: params.requestId,
         })
       }
-    } else {
-      console.log(source, method, _params)
     }
   }
 }

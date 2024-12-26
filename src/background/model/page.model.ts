@@ -4,6 +4,8 @@ import {
   FromServerPageEvaluateSocketPack,
   FromServerPageGotoSocketPack,
   FromServerPageKeyboardPressSocketPack,
+  FromServerPageKeyboardTypeSocketPack,
+  FromServerPageMouseClickSocketPack,
   FromServerPageTypeSocketPack,
   FromServerPageWaitForSelectorSocketPack,
   FromServerSocketPack,
@@ -125,6 +127,26 @@ export class Page extends Socket {
           })
         break
       }
+      case 'page.keyboard.type': {
+        this.onCmdKeyboardType(pack)
+          .then((result) => {
+            return this.send(pack.event, result, pack.id)
+          })
+          .catch((e: Error) => {
+            return this.send(pack.event, e.message, pack.id, true)
+          })
+        break
+      }
+      case 'page.mouse.click': {
+        this.onCmdMouseClick(pack)
+          .then((result) => {
+            return this.send(pack.event, result, pack.id)
+          })
+          .catch((e: Error) => {
+            return this.send(pack.event, e.message, pack.id, true)
+          })
+        break
+      }
     }
   }
 
@@ -179,6 +201,18 @@ export class Page extends Socket {
   private async onCmdKeyboardPress(pack: FromServerPageKeyboardPressSocketPack): Promise<void> {
     const { attachId } = await DebuggerManager.attach(this.tabId)
     await this.keyboard.press(pack.data.key, pack.data.options)
+    await DebuggerManager.detach(attachId)
+  }
+
+  private async onCmdKeyboardType(pack: FromServerPageKeyboardTypeSocketPack): Promise<void> {
+    const { attachId } = await DebuggerManager.attach(this.tabId)
+    await this.keyboard.type(pack.data.text, pack.data.options)
+    await DebuggerManager.detach(attachId)
+  }
+
+  private async onCmdMouseClick(pack: FromServerPageMouseClickSocketPack): Promise<void> {
+    const { attachId } = await DebuggerManager.attach(this.tabId)
+    await this.mouse.click(pack.data.x, pack.data.y, pack.data.options)
     await DebuggerManager.detach(attachId)
   }
 

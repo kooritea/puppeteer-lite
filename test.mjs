@@ -1,5 +1,5 @@
 import { WebSocketServer } from 'ws'
-
+import * as fs from 'fs' 
 const wss = new WebSocketServer({ port: 7004 })
 
 
@@ -117,6 +117,10 @@ async function onPageConnect(ws) {
         return document.querySelector('.markdown-body.entry-content').innerText
       }).toString()
     }))
+    const screenshot = await send(ws, 'page.screenshot', {
+      type: 'png',
+    })
+    fs.writeFileSync('screenshot.png', screenshot, 'base64')
   } catch (e) {
     console.error(e)
   }

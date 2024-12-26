@@ -421,3 +421,60 @@ interface KeyboardTypeOptions {
 }
 
 type KeyPressOptions = KeyboardTypeOptions
+
+export interface ScreenshotOptions {
+  /**
+   * @defaultValue `'png'`
+   */
+  type?: 'png' | 'jpeg' | 'webp'
+  /**
+   * Quality of the image, between 0-100. Not applicable to `png` images.
+   */
+  quality?: number
+  /**
+   * Specifies the region of the page/element to clip.
+   */
+  clip?: ScreenshotClip
+  /**
+   * Capture the screenshot from the surface, rather than the view.
+   *
+   * @defaultValue `true`
+   */
+  fromSurface?: boolean
+  /**
+   * Capture the screenshot beyond the viewport.
+   *
+   * @defaultValue `false` if there is no `clip`. `true` otherwise.
+   */
+  captureBeyondViewport?: boolean
+  /**
+   * @defaultValue `false`
+   */
+  optimizeForSpeed?: boolean
+  /**
+   * When `true`, takes a screenshot of the full page.
+   *
+   * @defaultValue `false`
+   */
+  // fullPage?: boolean
+  /**
+   * Hides default white background and allows capturing screenshots with transparency.
+   *
+   * @defaultValue `false`
+   */
+  // omitBackground?: boolean
+}
+
+export interface ScreenshotClip extends BoundingBox {
+  /**
+   * @defaultValue `1`
+   */
+  scale?: number
+}
+
+export interface Rect {
+  x: number
+  y: number
+  width: number
+  height: number
+}

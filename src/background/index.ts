@@ -4,7 +4,7 @@ import { Browser } from './model/browser.model.js'
 
 let masterBrowser: Browser
 const Browsers: Array<Browser> = []
-
+globalThis.Browsers = Browsers
 function start() {
   masterBrowser = new Browser(Config.masterWS, createBrowser)
   Browsers.push(masterBrowser)

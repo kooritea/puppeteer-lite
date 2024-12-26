@@ -6,7 +6,7 @@ interface DebuggerUseInstance extends DebuggerInstance {
   attachId: string
 }
 
-class _DebuggerManager {
+export class CDebuggerManager {
   private DebuggerVersion = '1.2'
   private tabQueue: Array<{
     tabId: number
@@ -122,4 +122,6 @@ class _DebuggerManager {
     }
   }
 }
-export const DebuggerManager = new _DebuggerManager()
+
+export const DebuggerManager = new CDebuggerManager()
+globalThis.DebuggerManager = DebuggerManager

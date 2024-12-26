@@ -1,4 +1,4 @@
-import { GotoOptions } from 'src/typings/puppeteer.js'
+import { GotoOptions, Rect, ScreenshotClip } from 'src/typings/puppeteer.js'
 import {
   FromServerPageClickSocketPack,
   FromServerPageEvaluateSocketPack,
@@ -6,6 +6,7 @@ import {
   FromServerPageKeyboardPressSocketPack,
   FromServerPageKeyboardTypeSocketPack,
   FromServerPageMouseClickSocketPack,
+  FromServerPageScreenshotSocketPack,
   FromServerPageTypeSocketPack,
   FromServerPageWaitForSelectorSocketPack,
   FromServerSocketPack,
@@ -92,6 +93,16 @@ export class Page extends Socket {
       }
       case 'page.click': {
         this.onCmdClick(pack)
+          .then((result) => {
+            return this.send(pack.event, result, pack.id)
+          })
+          .catch((e: Error) => {
+            return this.send(pack.event, e.message, pack.id, true)
+          })
+        break
+      }
+      case 'page.screenshot': {
+        this.onCmdScreenshot(pack)
           .then((result) => {
             return this.send(pack.event, result, pack.id)
           })
@@ -194,6 +205,42 @@ export class Page extends Socket {
     await DebuggerManager.detach(attachId)
   }
 
+  private async onCmdScreenshot(pack: FromServerPageScreenshotSocketPack): Promise<string> {
+    const { attachId } = await DebuggerManager.attach(this.tabId)
+    const {
+      fromSurface,
+      optimizeForSpeed,
+      quality,
+      clip: userClip,
+      type,
+      captureBeyondViewport,
+    } = pack.data
+
+    let clip = userClip
+    if (clip && !captureBeyondViewport) {
+      const viewport = await this.executionContext.executeScript(() => {
+        const { height, pageLeft: x, pageTop: y, width } = window.visualViewport!
+        return { x, y, height, width }
+      })
+      clip = getIntersectionRect(clip, viewport)
+    }
+
+    const { data } = (await chrome.debugger.sendCommand(
+      { tabId: this.tabId },
+      'Page.captureScreenshot',
+      {
+        format: type,
+        ...(optimizeForSpeed ? { optimizeForSpeed } : {}),
+        ...(quality !== undefined ? { quality: Math.round(quality) } : {}),
+        ...(clip ? { clip: { ...clip, scale: clip.scale ?? 1 } } : {}),
+        ...(!fromSurface ? { fromSurface } : {}),
+        captureBeyondViewport,
+      }
+    )) as { data: string }
+    await DebuggerManager.detach(attachId)
+    return data
+  }
+
   private async onCmdGoto(pack: FromServerPageGotoSocketPack): Promise<void> {
     await this.goto(pack.data.url, pack.data.options)
   }
@@ -229,5 +276,19 @@ export class Page extends Socket {
   public async close(): Promise<void> {
     await this.send('page.close', {}, this.closeSignalId)
     super.close()
+  }
+}
+
+function getIntersectionRect(
+  clip: Readonly<ScreenshotClip>,
+  viewport: Readonly<Rect>
+): ScreenshotClip {
+  const x = Math.max(clip.x, viewport.x)
+  const y = Math.max(clip.y, viewport.y)
+  return {
+    x,
+    y,
+    width: Math.max(Math.min(clip.x + clip.width, viewport.x + viewport.width) - x, 0),
+    height: Math.max(Math.min(clip.y + clip.height, viewport.y + viewport.height) - y, 0),
   }
 }

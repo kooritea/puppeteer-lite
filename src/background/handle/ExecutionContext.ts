@@ -21,7 +21,6 @@ export class ExecutionContext {
     ...args: Params
   ): Promise<Result> {
     const contextPayload = await this.getDefaultContext()
-    console.log(contextPayload)
     return this._executeScript(contextPayload, func, ...args).catch((e) => {
       console.error(e)
       throw e

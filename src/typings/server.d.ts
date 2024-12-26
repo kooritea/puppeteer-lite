@@ -5,6 +5,7 @@ import {
   KeyInput,
   KeyPressOptions,
   MouseClickOptions,
+  ScreenshotOptions,
   WaitForSelectorOptions,
 } from './puppeteer'
 
@@ -14,6 +15,7 @@ type ServerPageEvent =
   | 'page.waitForSelector'
   | 'page.type'
   | 'page.click'
+  | 'page.screenshot'
   | 'page.goto'
   | 'page.close'
 type ServerpageKeyboardEvent = 'page.keyboard.press' | 'page.keyboard.type'
@@ -69,6 +71,12 @@ interface FromServerPageClickSocketPack extends SocketPack {
     options?: ClickOptions
   }
 }
+interface FromServerPageScreenshotSocketPack extends SocketPack {
+  event: 'page.screenshot'
+  id: string
+  data: ScreenshotOptions
+}
+
 interface FromServerPageGotoSocketPack extends SocketPack {
   event: 'page.goto'
   id: string
@@ -139,6 +147,7 @@ type FromServerSocketPack =
   | FromServerPageWaitForSelectorSocketPack
   | FromServerPageTypeSocketPack
   | FromServerPageClickSocketPack
+  | FromServerPageScreenshotSocketPack
   | FromServerPageGotoSocketPack
   | FromServerPageCloseSocketPack
   | FromServerPageKeyboardPressSocketPack

@@ -22,11 +22,12 @@ npm i
 npm run build
 ```
 
+- 4、如需使用page.mouse相关api,请使用--silent-debugger-extension-api启动浏览器，否则xy坐标会不准确
 
-- 4、使用chrome扩展开发者模式，加载项目根目录
+- 5、使用chrome扩展开发者模式，加载项目根目录
 
 
-- 5、运行本地测试
+- 6、运行本地测试
 ```shell
 npm run test
 ```

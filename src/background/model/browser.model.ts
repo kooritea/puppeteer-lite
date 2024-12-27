@@ -73,7 +73,7 @@ export class Browser extends Socket {
     await this.emitCreateChilBrowser(pack.data.serverURL)
   }
 
-  private async onCreatePage(pack: FromServerBrowserCreatePageSocketPack): Promise<void> {
+  private async onCreatePage(pack: FromServerBrowserCreatePageSocketPack): Promise<Page> {
     const tab = await chrome.tabs.create({ url: 'about:blank' })
     const page = new Page(
       tab,
@@ -90,6 +90,7 @@ export class Browser extends Socket {
         resolve()
       })
     })
+    return page
   }
 
   public async removePage(tabId: number): Promise<void> {

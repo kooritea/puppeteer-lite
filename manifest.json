@@ -7,6 +7,10 @@
     "service_worker": "dist/background/index.js",
     "type": "module"
   },
+  "action": {
+    "default_popup": "dist/popup/index.html",
+    "default_title": "PuppeteerLite"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -17,6 +21,16 @@
       ],
       "run_at": "document_start",
       "world": "MAIN"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "dist/page/isolated_document_start.js"
+      ],
+      "run_at": "document_start",
+      "world": "ISOLATED"
     }
   ],
   "permissions": [
@@ -27,7 +41,8 @@
     "storage",
     "debugger",
     "webRequest",
-    "declarativeNetRequest"
+    "declarativeNetRequest",
+    "clipboardWrite"
   ],
   "host_permissions": [
     "<all_urls>"

@@ -79,14 +79,17 @@ export class CDebuggerManager {
   }
 
   public async detach(attachId: string): Promise<void> {
-    this.attaching.splice(this.attaching.indexOf(attachId), 1)
-    if (this.attaching.length === 0) {
-      if (this.attachTab) {
-        await chrome.debugger.sendCommand({ tabId: this.attachTab.tabId }, 'Runtime.disable', {})
-        await chrome.debugger.detach({ tabId: this.attachTab.tabId })
+    const i = this.attaching.indexOf(attachId)
+    if (i > -1) {
+      this.attaching.splice(i, 1)
+      if (this.attaching.length === 0) {
+        if (this.attachTab) {
+          await chrome.debugger.sendCommand({ tabId: this.attachTab.tabId }, 'Runtime.disable', {})
+          await chrome.debugger.detach({ tabId: this.attachTab.tabId })
+        }
+        this.attachTab = null
+        this.attachNext()
       }
-      this.attachTab = null
-      this.attachNext()
     }
   }
 

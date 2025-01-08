@@ -20,6 +20,7 @@ type ServerPageEvent =
   | 'page.close'
 type ServerpageKeyboardEvent = 'page.keyboard.press' | 'page.keyboard.type'
 type ServerpageMouseEvent = 'page.mouse.click'
+type ServerpageNetworkEvent = 'page.network.enable' | 'page.network.disable'
 type ServerBrowserEvent =
   | 'browser.auth'
   | 'browser.createChildBrowser'
@@ -30,6 +31,7 @@ type ServerEvent =
   | ServerpageKeyboardEvent
   | ServerpageMouseEvent
   | ServerBrowserEvent
+  | ServerpageNetworkEvent
 
 interface SocketPack {
   event: ServerEvent
@@ -118,6 +120,16 @@ interface FromServerPageMouseClickSocketPack extends SocketPack {
   }
 }
 
+interface FromServerPageNetworkEnableSocketPack extends SocketPack {
+  event: 'page.network.enable'
+  id: string
+}
+
+interface FromServerPageNetworkDisableSocketPack extends SocketPack {
+  event: 'page.network.disable'
+  id: string
+}
+
 interface FromServerBrowserAuthSocketPack extends SocketPack {
   event: 'browser.auth'
 }
@@ -153,6 +165,8 @@ type FromServerSocketPack =
   | FromServerPageKeyboardPressSocketPack
   | FromServerPageKeyboardTypeSocketPack
   | FromServerPageMouseClickSocketPack
+  | FromServerPageNetworkEnableSocketPack
+  | FromServerPageNetworkDisableSocketPack
   | FromServerBrowserAuthSocketPack
   | FromServerBrowserCreateChildBrowserSocketPack
   | FromServerBrowserCreatePageSocketPack

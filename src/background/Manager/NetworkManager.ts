@@ -1,11 +1,15 @@
 import { FetchRequestPausedParams } from 'src/typings/puppeteer'
+import { Page } from '../model/page.model'
+import { DebuggerManager } from './DebuggerManager.js'
 
 export class NetworkManager {
-  private requestQueue: Array<FetchRequestPausedParams> = []
   private onEventHandler
-  private isPause: boolean = false
+  private attachId: string | null = null
 
-  constructor(public tabId: number) {
+  constructor(
+    private page: Page,
+    public tabId: number
+  ) {
     this.onEventHandler = (
       source: chrome._debugger.Debuggee,
       method: string,
@@ -18,29 +22,20 @@ export class NetworkManager {
   }
 
   public async enable(): Promise<void> {
+    const { attachId } = await DebuggerManager.attach(this.tabId)
+    this.attachId = attachId
     chrome.debugger.onEvent.addListener(this.onEventHandler)
-    await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.enable')
+    await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.enable', {
+      patterns: [{ requestStage: 'Request' }, { requestStage: 'Response' }],
+    })
   }
 
   public async disable(): Promise<void> {
-    chrome.debugger.onEvent.removeListener(this.onEventHandler)
-    await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.disable')
-  }
-
-  public pause(): void {
-    this.isPause = true
-  }
-  public async continue(): Promise<void> {
-    this.isPause = false
-    const requestQueue = this.requestQueue
-    this.requestQueue = []
-    await Promise.all(
-      requestQueue.map((request) => {
-        return chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.continueRequest', {
-          requestId: request.requestId,
-        })
-      })
-    )
+    if (this.attachId) {
+      chrome.debugger.onEvent.removeListener(this.onEventHandler)
+      await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.disable')
+      await DebuggerManager.detach(this.attachId)
+    }
   }
 
   private async onEvent(
@@ -48,14 +43,40 @@ export class NetworkManager {
     method: string,
     _params?: unknown
   ): Promise<void> {
-    if (source.tabId === this.tabId && method === 'Fetch.requestPaused') {
-      const params = _params as FetchRequestPausedParams
-      if (this.isPause) {
-        this.requestQueue.push(params)
-      } else {
-        await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.continueRequest', {
-          requestId: params.requestId,
-        })
+    if (source.tabId === this.tabId) {
+      if (method === 'Fetch.requestPaused') {
+        const params = _params as FetchRequestPausedParams
+        if (!params.responseErrorReason && !params.responseStatusCode) {
+          await this.page.send('page.network.request', {
+            ...params,
+            pageId: this.page.pageId,
+          })
+          await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.continueRequest', {
+            requestId: params.requestId,
+          })
+        } else {
+          const response = (await chrome.debugger.sendCommand(
+            { tabId: this.tabId },
+            'Fetch.getResponseBody',
+            {
+              requestId: params.requestId,
+            }
+          )) as {
+            body: string
+            base64Encoded: boolean
+          }
+          await this.page.send('page.network.response', {
+            ...params,
+            response,
+            pageId: this.page.pageId,
+          })
+          await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Fetch.fulfillRequest', {
+            requestId: params.requestId,
+            responseCode: params.responseStatusCode,
+            responseHeaders: params.responseHeaders,
+            body: response.body,
+          })
+        }
       }
     }
   }

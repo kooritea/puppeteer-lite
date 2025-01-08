@@ -40,7 +40,7 @@ export class Page extends Socket {
     this.tabId = tab.id
     this.keyboard = new ExtKeyboard(this.tabId)
     this.mouse = new ExtMouse(this.keyboard, this.tabId)
-    this.networkManager = new NetworkManager(this.tabId)
+    this.networkManager = new NetworkManager(this, this.tabId)
     this.executionContext = new ExecutionContext(this.tabId)
     DebuggerManager.registerTab(this.tabId, this.executionContext)
   }
@@ -64,97 +64,119 @@ export class Page extends Socket {
       case 'page.evaluate': {
         this.onCmdEvaluate(pack)
           .then((result) => {
-            return this.send(pack.event, result, pack.id)
+            return this.reply(pack.event, pack.id, result)
           })
           .catch((e: Error) => {
-            return this.send(pack.event, e.message, pack.id, true)
+            return this.reply(pack.event, pack.id, e.message, true)
           })
         break
       }
       case 'page.waitForSelector': {
         this.onCmdWaitForSelector(pack)
           .then((result) => {
-            return this.send(pack.event, result, pack.id)
+            return this.reply(pack.event, pack.id, result)
           })
           .catch((e: Error) => {
-            return this.send(pack.event, e.message, pack.id, true)
+            return this.reply(pack.event, pack.id, e.message, true)
           })
         break
       }
       case 'page.type': {
         this.onCmdType(pack)
           .then((result) => {
-            return this.send(pack.event, result, pack.id)
+            return this.reply(pack.event, pack.id, result)
           })
           .catch((e: Error) => {
-            return this.send(pack.event, e.message, pack.id, true)
+            return this.reply(pack.event, pack.id, e.message, true)
           })
         break
       }
       case 'page.click': {
         this.onCmdClick(pack)
           .then((result) => {
-            return this.send(pack.event, result, pack.id)
+            return this.reply(pack.event, pack.id, result)
           })
           .catch((e: Error) => {
-            return this.send(pack.event, e.message, pack.id, true)
+            return this.reply(pack.event, pack.id, e.message, true)
           })
         break
       }
       case 'page.screenshot': {
         this.onCmdScreenshot(pack)
           .then((result) => {
-            return this.send(pack.event, result, pack.id)
+            return this.reply(pack.event, pack.id, result)
           })
           .catch((e: Error) => {
-            return this.send(pack.event, e.message, pack.id, true)
+            return this.reply(pack.event, pack.id, e.message, true)
           })
         break
       }
       case 'page.goto': {
         this.onCmdGoto(pack)
           .then((result) => {
-            return this.send(pack.event, result, pack.id)
+            return this.reply(pack.event, pack.id, result)
           })
           .catch((e: Error) => {
-            return this.send(pack.event, e.message, pack.id, true)
+            return this.reply(pack.event, pack.id, e.message, true)
           })
         break
       }
       case 'page.close': {
         this.closeSignalId = pack.id
         chrome.tabs.remove(this.tabId).catch((e: Error) => {
-          return this.send(pack.event, e.message, pack.id, true)
+          return this.reply(pack.event, pack.id, e.message, true)
         })
         break
       }
       case 'page.keyboard.press': {
         this.onCmdKeyboardPress(pack)
           .then((result) => {
-            return this.send(pack.event, result, pack.id)
+            return this.reply(pack.event, pack.id, result)
           })
           .catch((e: Error) => {
-            return this.send(pack.event, e.message, pack.id, true)
+            return this.reply(pack.event, pack.id, e.message, true)
           })
         break
       }
       case 'page.keyboard.type': {
         this.onCmdKeyboardType(pack)
           .then((result) => {
-            return this.send(pack.event, result, pack.id)
+            return this.reply(pack.event, pack.id, result)
           })
           .catch((e: Error) => {
-            return this.send(pack.event, e.message, pack.id, true)
+            return this.reply(pack.event, pack.id, e.message, true)
           })
         break
       }
       case 'page.mouse.click': {
         this.onCmdMouseClick(pack)
           .then((result) => {
-            return this.send(pack.event, result, pack.id)
+            return this.reply(pack.event, pack.id, result)
           })
           .catch((e: Error) => {
-            return this.send(pack.event, e.message, pack.id, true)
+            return this.reply(pack.event, pack.id, e.message, true)
+          })
+        break
+      }
+      case 'page.network.enable': {
+        this.networkManager
+          .enable()
+          .then(() => {
+            return this.reply(pack.event, pack.id)
+          })
+          .catch((e: Error) => {
+            return this.reply(pack.event, pack.id, e.message, true)
+          })
+        break
+      }
+      case 'page.network.disable': {
+        this.networkManager
+          .disable()
+          .then(() => {
+            return this.reply(pack.event, pack.id)
+          })
+          .catch((e: Error) => {
+            return this.reply(pack.event, pack.id, e.message, true)
           })
         break
       }
@@ -274,7 +296,12 @@ export class Page extends Socket {
   }
 
   public async close(): Promise<void> {
-    await this.send('page.close', {}, this.closeSignalId)
+    await this.networkManager.disable()
+    if (this.closeSignalId) {
+      await this.reply('page.close', this.closeSignalId)
+    } else {
+      await this.send('page.close')
+    }
     super.close()
   }
 }

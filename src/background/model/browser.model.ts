@@ -44,23 +44,23 @@ export class Browser extends Socket {
       case 'browser.createChildBrowser': {
         this.onCreateChildBrowser(pack)
           .then(() => {
-            return this.send(pack.event, {}, pack.id)
+            return this.reply(pack.event, pack.id)
           })
           .catch((e: Error) => {
-            return this.send(pack.event, e.message, pack.id, true)
+            return this.reply(pack.event, pack.id, e.message, true)
           })
         break
       }
       case 'browser.createPage': {
         this.onCreatePage(pack).catch((e: Error) => {
-          return this.send(pack.event, e.message, pack.id, true)
+          return this.reply(pack.event, pack.id, e.message, true)
         })
         break
       }
       case 'browser.close': {
         this.closeSignalId = pack.id
         this.close().catch((e: Error) => {
-          return this.send(pack.event, e.message, pack.id, true)
+          return this.reply(pack.event, pack.id, e.message, true)
         })
         break
       }
@@ -105,7 +105,11 @@ export class Browser extends Socket {
   }
 
   public async close(): Promise<void> {
-    await this.send('browser.close', {}, this.closeSignalId)
+    if (this.closeSignalId) {
+      await this.reply('browser.close', this.closeSignalId)
+    } else {
+      await this.send('browser.close')
+    }
     super.close()
     this.dispatchEvent(new CustomEvent('close'))
   }

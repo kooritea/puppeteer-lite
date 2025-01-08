@@ -410,6 +410,9 @@ interface FetchRequestPausedParams {
       | 'strict-origin-when-cross-origin'
     url: string
   }
+  responseErrorReason?: string
+  responseStatusCode?: number
+  responseHeaders?: Record<string, string>
 }
 
 interface GotoOptions {

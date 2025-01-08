@@ -1,4 +1,4 @@
-import { FromServerSocketPack } from 'src/typings/server.js'
+import { FromServerSocketPack, ServerEvent } from 'src/typings/server.js'
 import { getAuth } from '../utils.js'
 
 export abstract class Socket extends EventTarget {
@@ -71,10 +71,23 @@ export abstract class Socket extends EventTarget {
     })
   }
 
-  protected async send(
-    event: string,
+  public async reply(
+    event: ServerEvent,
+    id: string,
     data?: unknown,
+    isError: boolean = false
+  ): Promise<void> {
+    return this._send(event, id, data, isError)
+  }
+
+  public async send(event: ClientEvent, data?: unknown, isError: boolean = false): Promise<void> {
+    return this._send(event, undefined, data, isError)
+  }
+
+  private async _send(
+    event: ServerEvent | ClientEvent,
     id?: string,
+    data?: unknown,
     isError: boolean = false
   ): Promise<void> {
     if (isError) {

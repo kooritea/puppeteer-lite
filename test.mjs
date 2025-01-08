@@ -51,8 +51,16 @@ wss.on('connection', function connection(ws) {
       case 'browser.ping': {
         break
       }
-      default: {
+      case 'page.network.request': {
         console.log(pack)
+        break
+      }
+      case 'page.network.response': {
+        console.log(pack)
+        break
+      }
+      default: {
+        // console.log(pack)
       }
     }
   })
@@ -77,6 +85,7 @@ async function send(ws, event, data) {
 
 async function onPageConnect(ws) {
   try {
+    await send(ws, 'page.network.enable')
     await send(ws, 'page.goto', {
       url: 'https://www.google.com',
     })
@@ -121,6 +130,7 @@ async function onPageConnect(ws) {
       type: 'png',
     })
     fs.writeFileSync('screenshot.png', screenshot, 'base64')
+    await send(ws, 'page.network.disable')
   } catch (e) {
     console.error(e)
   }

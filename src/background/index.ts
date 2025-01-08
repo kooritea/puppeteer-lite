@@ -30,8 +30,11 @@ function createBrowser(serverURL: string): Promise<Browser> {
         reject(new Error(`connect_error: ${serverURL}`))
       })
       browser.addEventListener('close', () => {
-        Browsers.splice(Browsers.indexOf(browser), 1)
-        console.log('从浏览器实例已退出', browser)
+        const i = Browsers.indexOf(browser)
+        if (i > -1) {
+          Browsers.splice(Browsers.indexOf(browser), 1)
+          console.log('从浏览器实例已退出', browser)
+        }
       })
     }
   })

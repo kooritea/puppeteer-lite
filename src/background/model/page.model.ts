@@ -1,6 +1,7 @@
-import { GotoOptions, Rect, ScreenshotClip } from 'src/typings/puppeteer.js'
+import { GotoOptions, Rect, ScreenshotClip, WaitUntil } from 'src/typings/puppeteer.js'
 import {
   FromServerPageClickSocketPack,
+  FromServerPageCookiesSocketPack,
   FromServerPageEvaluateSocketPack,
   FromServerPageGotoSocketPack,
   FromServerPageKeyboardPressSocketPack,
@@ -29,7 +30,7 @@ export class Page extends Socket {
   private closeSignalId: string | undefined
 
   constructor(
-    public tab: chrome.tabs.Tab,
+    tab: chrome.tabs.Tab,
     public pageId: string,
     serverURL: string
   ) {
@@ -103,6 +104,16 @@ export class Page extends Socket {
       }
       case 'page.screenshot': {
         this.onCmdScreenshot(pack)
+          .then((result) => {
+            return this.reply(pack.event, pack.id, result)
+          })
+          .catch((e: Error) => {
+            return this.reply(pack.event, pack.id, e.message, true)
+          })
+        break
+      }
+      case 'page.cookies': {
+        this.onCmdCookies(pack)
           .then((result) => {
             return this.reply(pack.event, pack.id, result)
           })
@@ -263,6 +274,31 @@ export class Page extends Socket {
     return data
   }
 
+  private async onCmdCookies(
+    pack: FromServerPageCookiesSocketPack
+  ): Promise<chrome.cookies.Cookie[]> {
+    const urls: string[] = []
+    if (Array.isArray(pack.data.urls)) {
+      urls.push(...pack.data.urls)
+    } else {
+      const tab = await chrome.tabs.get(this.tabId)
+      if (tab.url) {
+        urls.push(tab.url)
+      } else {
+        throw new Error('not found tab.url')
+      }
+    }
+    const result: chrome.cookies.Cookie[] = []
+    for (const url of urls) {
+      result.push(
+        ...(await chrome.cookies.getAll({
+          url,
+        }))
+      )
+    }
+    return result
+  }
+
   private async onCmdGoto(pack: FromServerPageGotoSocketPack): Promise<void> {
     await this.goto(pack.data.url, pack.data.options)
   }
@@ -285,7 +321,7 @@ export class Page extends Socket {
     await DebuggerManager.detach(attachId)
   }
 
-  public async goto(url: string, options?: GotoOptions): Promise<void> {
+  public async goto(url: string, options?: GotoOptions & WaitUntil): Promise<void> {
     const { attachId } = await DebuggerManager.attach(this.tabId)
     await chrome.debugger.sendCommand({ tabId: this.tabId }, 'Page.navigate', {
       url,
@@ -293,6 +329,18 @@ export class Page extends Socket {
     })
     this.executionContext.reset()
     await DebuggerManager.detach(attachId)
+    if (options?.waitUntil === 'tab.status.complete') {
+      await tryDo({
+        handler: async () => {
+          const tab = await chrome.tabs.get(this.tabId)
+          if (tab.status !== 'complete') {
+            throw new Error(`tab.status: ${tab.status}`)
+          }
+        },
+        interval: 100,
+        timeout: 60000,
+      })
+    }
   }
 
   public async close(): Promise<void> {

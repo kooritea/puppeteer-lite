@@ -16,6 +16,7 @@ type ServerPageEvent =
   | 'page.type'
   | 'page.click'
   | 'page.screenshot'
+  | 'page.cookies'
   | 'page.goto'
   | 'page.close'
 type ServerpageKeyboardEvent = 'page.keyboard.press' | 'page.keyboard.type'
@@ -77,6 +78,13 @@ interface FromServerPageScreenshotSocketPack extends SocketPack {
   event: 'page.screenshot'
   id: string
   data: ScreenshotOptions
+}
+interface FromServerPageCookiesSocketPack extends SocketPack {
+  event: 'page.cookies'
+  id: string
+  data: {
+    urls?: string[]
+  }
 }
 
 interface FromServerPageGotoSocketPack extends SocketPack {
@@ -160,6 +168,7 @@ type FromServerSocketPack =
   | FromServerPageTypeSocketPack
   | FromServerPageClickSocketPack
   | FromServerPageScreenshotSocketPack
+  | FromServerPageCookiesSocketPack
   | FromServerPageGotoSocketPack
   | FromServerPageCloseSocketPack
   | FromServerPageKeyboardPressSocketPack

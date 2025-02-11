@@ -481,3 +481,7 @@ export interface Rect {
   width: number
   height: number
 }
+
+export interface WaitUntil {
+  waitUntil?: 'tab.status.complete'
+}

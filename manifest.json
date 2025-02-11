@@ -37,6 +37,7 @@
     "alarms",
     "activeTab",
     "tabs",
+    "cookies",
     "scripting",
     "storage",
     "debugger",

@@ -28,6 +28,7 @@ export class Page extends Socket {
   public tabId: number
 
   private closeSignalId: string | undefined
+  private consoleAttachId: string | null = null
 
   constructor(
     tab: chrome.tabs.Tab,
@@ -198,9 +199,13 @@ export class Page extends Socket {
     const { attachId } = await DebuggerManager.attach(this.tabId)
     await tryDo({
       handler: async () => {
-        const val = await this.executionContext.executeScript((selector: string) => {
-          return !!document.querySelector(selector)
-        }, pack.data.selector)
+        const val = await this.executionContext.executeScriptUseFrameSelector(
+          pack.data.options?.frameSelector,
+          (selector: string) => {
+            return !!document.querySelector(selector)
+          },
+          pack.data.selector
+        )
         if (!val) {
           throw new Error(`selector('${pack.data.selector}') not found`)
         }
@@ -213,20 +218,27 @@ export class Page extends Socket {
 
   private async onCmdEvaluate(pack: FromServerPageEvaluateSocketPack): Promise<unknown> {
     const { attachId } = await DebuggerManager.attach(this.tabId)
-    const result = await this.executionContext.executeScript(pack.data.code)
+    const result = await this.executionContext.executeScriptUseFrameSelector(
+      pack.data.options?.frameSelector,
+      pack.data.code
+    )
     await DebuggerManager.detach(attachId)
     return result
   }
 
   private async onCmdType(pack: FromServerPageTypeSocketPack): Promise<void> {
     const { attachId } = await DebuggerManager.attach(this.tabId)
-    await this.executionContext.executeScript((pack: FromServerPageTypeSocketPack) => {
-      const el = document.querySelector(pack.data.selector)
-      if (!(el instanceof HTMLElement)) {
-        throw new Error('Cannot focus non-HTMLElement')
-      }
-      el.focus()
-    }, pack)
+    await this.executionContext.executeScriptUseFrameSelector(
+      pack.data.options?.frameSelector,
+      (pack: FromServerPageTypeSocketPack) => {
+        const el = document.querySelector(pack.data.selector)
+        if (!(el instanceof HTMLElement)) {
+          throw new Error('Cannot focus non-HTMLElement')
+        }
+        el.focus()
+      },
+      pack
+    )
     await this.keyboard.type(pack.data.text, pack.data.options)
     await DebuggerManager.detach(attachId)
   }
@@ -251,10 +263,13 @@ export class Page extends Socket {
 
     let clip = userClip
     if (clip && !captureBeyondViewport) {
-      const viewport = await this.executionContext.executeScript(() => {
-        const { height, pageLeft: x, pageTop: y, width } = window.visualViewport!
-        return { x, y, height, width }
-      })
+      const viewport = await this.executionContext.executeScriptUseFrameSelector(
+        pack.data.options?.frameSelector,
+        () => {
+          const { height, pageLeft: x, pageTop: y, width } = window.visualViewport!
+          return { x, y, height, width }
+        }
+      )
       clip = getIntersectionRect(clip, viewport)
     }
 
@@ -351,6 +366,18 @@ export class Page extends Socket {
       await this.send('page.close')
     }
     super.close()
+  }
+
+  public async attach() {
+    const { attachId } = await DebuggerManager.attach(this.tabId)
+    this.consoleAttachId = attachId
+  }
+
+  public async detach() {
+    if (this.consoleAttachId) {
+      await DebuggerManager.detach(this.consoleAttachId)
+    }
+    this.consoleAttachId = null
   }
 }
 

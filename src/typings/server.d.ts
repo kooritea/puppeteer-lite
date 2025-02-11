@@ -9,6 +9,10 @@ import {
   WaitForSelectorOptions,
 } from './puppeteer'
 
+export interface FrameSelector {
+  name?: string
+}
+
 type ServerPageEvent =
   | 'page.auth'
   | 'page.evaluate'
@@ -47,6 +51,9 @@ interface FromServerPageEvaluateSocketPack extends SocketPack {
   id: string
   data: {
     code: string
+    options?: {
+      frameSelector?: FrameSelector
+    }
   }
 }
 interface FromServerPageWaitForSelectorSocketPack extends SocketPack {
@@ -54,7 +61,9 @@ interface FromServerPageWaitForSelectorSocketPack extends SocketPack {
   id: string
   data: {
     selector: string
-    options?: WaitForSelectorOptions
+    options?: WaitForSelectorOptions & {
+      frameSelector?: FrameSelector
+    }
   }
 }
 interface FromServerPageTypeSocketPack extends SocketPack {
@@ -63,7 +72,9 @@ interface FromServerPageTypeSocketPack extends SocketPack {
   data: {
     selector: string
     text: string
-    options?: KeyboardTypeOptions
+    options?: KeyboardTypeOptions & {
+      frameSelector?: FrameSelector
+    }
   }
 }
 interface FromServerPageClickSocketPack extends SocketPack {
@@ -71,13 +82,19 @@ interface FromServerPageClickSocketPack extends SocketPack {
   id: string
   data: {
     selector: string
-    options?: ClickOptions
+    options?: ClickOptions & {
+      frameSelector?: FrameSelector
+    }
   }
 }
 interface FromServerPageScreenshotSocketPack extends SocketPack {
   event: 'page.screenshot'
   id: string
-  data: ScreenshotOptions
+  data: ScreenshotOptions & {
+    options?: ClickOptions & {
+      frameSelector?: FrameSelector
+    }
+  }
 }
 interface FromServerPageCookiesSocketPack extends SocketPack {
   event: 'page.cookies'

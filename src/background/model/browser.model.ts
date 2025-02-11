@@ -95,7 +95,7 @@ export class Browser extends Socket {
 
   public async removePage(tabId: number): Promise<void> {
     const pageIndex = this.pages.findIndex((item) => {
-      return item.tab.id === tabId
+      return item.tabId === tabId
     })
     const page = this.pages[pageIndex]
     if (page) {

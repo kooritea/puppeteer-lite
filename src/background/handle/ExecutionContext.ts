@@ -1,3 +1,5 @@
+import { FrameSelector } from 'src/typings/server'
+
 export interface ContextPayload {
   auxData: {
     frameId: string
@@ -20,14 +22,22 @@ export class ExecutionContext {
     func: string | ((...args: Params) => Result),
     ...args: Params
   ): Promise<Result> {
-    const contextPayload = await this.getDefaultContext()
-    return this._executeScript(contextPayload, func, ...args).catch((e) => {
+    return this.executeScriptUseFrameSelector(undefined, func, ...args)
+  }
+
+  public async executeScriptUseFrameSelector<Params extends unknown[], Result>(
+    frameSelector: FrameSelector | undefined,
+    func: string | ((...args: Params) => Result),
+    ...args: Params
+  ): Promise<Result> {
+    const contextPayload = await this.getDefaultContext(frameSelector)
+    return this.executeScriptUseContextPayload(contextPayload, func, ...args).catch((e) => {
       console.error(e)
       throw e
     })
   }
 
-  private _executeScript<Params extends unknown[], Result>(
+  private executeScriptUseContextPayload<Params extends unknown[], Result>(
     contextPayload: ContextPayload,
     func: string | ((...args: Params) => Result),
     ...args: Params
@@ -84,23 +94,40 @@ export class ExecutionContext {
     }
   }
 
-  public async getDefaultContext(): Promise<ContextPayload> {
+  public async getDefaultContext(frameSelector?: FrameSelector): Promise<ContextPayload> {
     for (const uniqueId of Object.keys(this.contextPayloadMap)) {
       if (this.contextPayloadMap[uniqueId].auxData.isDefault) {
         try {
-          await this._executeScript(this.contextPayloadMap[uniqueId], () => {})
-          return this.contextPayloadMap[uniqueId]
+          const contextInfo = await this.executeScriptUseContextPayload(
+            this.contextPayloadMap[uniqueId],
+            () => {
+              return {
+                name: window.name,
+              }
+            }
+          )
+          if (frameSelector) {
+            if (frameSelector.name === contextInfo.name) {
+              return this.contextPayloadMap[uniqueId]
+            }
+          } else {
+            return this.contextPayloadMap[uniqueId]
+          }
         } catch (e) {
           if (
             e instanceof Error &&
             e.message === '{"code":-32000,"message":"Cannot find context with specified id"}'
           ) {
             delete this.contextPayloadMap[uniqueId]
+          } else {
+            throw e
           }
         }
       }
     }
-    throw new Error('not found default ExecutionContext')
+    throw new Error(
+      `not found default${frameSelector ? `[${JSON.stringify(frameSelector)}]` : ''} ExecutionContext`
+    )
   }
 
   public reset(): void {

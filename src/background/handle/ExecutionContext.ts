@@ -107,7 +107,13 @@ export class ExecutionContext {
             }
           )
           if (frameSelector) {
+            if (frameSelector.id === this.contextPayloadMap[uniqueId].id) {
+              return this.contextPayloadMap[uniqueId]
+            }
             if (frameSelector.name === contextInfo.name) {
+              return this.contextPayloadMap[uniqueId]
+            }
+            if (frameSelector.origin === this.contextPayloadMap[uniqueId].origin) {
               return this.contextPayloadMap[uniqueId]
             }
           } else {

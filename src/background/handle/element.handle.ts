@@ -1,30 +1,34 @@
 import { BoundingBox, ClickOptions, Offset, Point } from 'src/typings/puppeteer'
+import { FrameSelector } from 'src/typings/server'
 import { Page } from '../model/page.model'
 
 export class ElementHandle {
   constructor(
     private page: Page,
-    public selector: string
+    public selector: string,
+    private frameSelector?: FrameSelector
   ) {}
 
   public async evaluate<Params extends unknown[], T>(
     func: (element: Element, ...args: Params) => T,
     ...args: Params
   ): Promise<Awaited<T>> {
-    const data = await chrome.scripting.executeScript({
-      target: { tabId: this.page.tabId },
-      injectImmediately: true,
-      world: 'MAIN',
-      func: (selector: string, func: string, ...args: Params) => {
+    return await this.page.executionContext.executeScriptUseFrameSelector<
+      [string, string, ...Params],
+      T
+    >(
+      this.frameSelector,
+      (selector: string, func: string, ...args: Params) => {
         const el = document.querySelector(selector)
         if (!el) {
           throw new Error(`selector('${selector}') not found`)
         }
         return (eval(func) as (element: Element, ...args: Params) => T)(el, ...args)
       },
-      args: [this.selector, func.toString(), ...args],
-    })
-    return data[0].result as Awaited<T>
+      this.selector,
+      func.toString(),
+      ...args
+    )
   }
 
   public async click(options: Readonly<ClickOptions> = {}) {
@@ -111,6 +115,44 @@ export class ElementHandle {
     })
     if (!box) {
       return null
+    }
+    if (this.frameSelector) {
+      const mid = String(Math.random())
+      await this.page.executionContext.executeScript((mid: string) => {
+        window._puppeteer_lite_iframe_handler_promise = new Promise((resolve, reject) => {
+          const timer = setTimeout(() => {
+            reject(new Error('found iframe in top document timeout'))
+          }, 10 * 1000)
+          window._puppeteer_lite_iframe_handler = function (event) {
+            if (event.data === mid) {
+              clearTimeout(timer)
+              const iframe = Array.from(document.querySelectorAll('iframe')).find((item) => {
+                return item.contentWindow === event.source
+              })
+              if (iframe) {
+                resolve(iframe)
+              } else {
+                reject(new Error('iframe not found in top document'))
+              }
+              window.removeEventListener('message', window._puppeteer_lite_iframe_handler)
+            }
+          }
+          window.addEventListener('message', window._puppeteer_lite_iframe_handler)
+        })
+      }, mid)
+      await this.evaluate((element, mid: string) => {
+        window.top?.postMessage(mid, {
+          targetOrigin: '*',
+        })
+      }, mid)
+      const iframerect = await this.page.executionContext.executeScript(async () => {
+        return await window._puppeteer_lite_iframe_handler_promise.then((iframe) => {
+          const rect = iframe.getBoundingClientRect()
+          return { x: rect.x, y: rect.y }
+        })
+      })
+      box.x = box.x + iframerect.x
+      box.y = box.y + iframerect.y
     }
     return {
       x: box.x,

@@ -245,7 +245,11 @@ export class Page extends Socket {
 
   private async onCmdClick(pack: FromServerPageClickSocketPack): Promise<void> {
     const { attachId } = await DebuggerManager.attach(this.tabId)
-    const elementHandle = new ElementHandle(this, pack.data.selector)
+    const elementHandle = new ElementHandle(
+      this,
+      pack.data.selector,
+      pack.data.options?.frameSelector
+    )
     await elementHandle.click(pack.data.options)
     await DebuggerManager.detach(attachId)
   }

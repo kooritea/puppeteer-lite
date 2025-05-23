@@ -11,6 +11,8 @@ import {
 
 export interface FrameSelector {
   name?: string
+  id?: number
+  origin?: string
 }
 
 type ServerPageEvent =

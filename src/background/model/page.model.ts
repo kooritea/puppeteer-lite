@@ -2,6 +2,7 @@ import { GotoOptions, Rect, ScreenshotClip, WaitUntil } from 'src/typings/puppet
 import {
   FromServerPageClickSocketPack,
   FromServerPageCookiesSocketPack,
+  FromServerPageDomSetFileInputFilesSocketPack,
   FromServerPageEvaluateSocketPack,
   FromServerPageGotoSocketPack,
   FromServerPageKeyboardPressSocketPack,
@@ -162,6 +163,16 @@ export class Page extends Socket {
       }
       case 'page.mouse.click': {
         this.onCmdMouseClick(pack)
+          .then((result) => {
+            return this.reply(pack.event, pack.id, result)
+          })
+          .catch((e: Error) => {
+            return this.reply(pack.event, pack.id, e.message, true)
+          })
+        break
+      }
+      case 'page.dom.setFileInputFiles': {
+        this.onCmdSetFileInputFiles(pack)
           .then((result) => {
             return this.reply(pack.event, pack.id, result)
           })
@@ -337,6 +348,30 @@ export class Page extends Socket {
   private async onCmdMouseClick(pack: FromServerPageMouseClickSocketPack): Promise<void> {
     const { attachId } = await DebuggerManager.attach(this.tabId)
     await this.mouse.click(pack.data.x, pack.data.y, pack.data.options)
+    await DebuggerManager.detach(attachId)
+  }
+
+  private async onCmdSetFileInputFiles(
+    pack: FromServerPageDomSetFileInputFilesSocketPack
+  ): Promise<void> {
+    const { attachId } = await DebuggerManager.attach(this.tabId)
+    const { root } = (await chrome.debugger.sendCommand(
+      { tabId: this.tabId },
+      'DOM.getDocument',
+      {}
+    )) as { root: { nodeId: number } }
+    const { nodeId } = (await chrome.debugger.sendCommand(
+      { tabId: this.tabId },
+      'DOM.querySelector',
+      {
+        nodeId: root.nodeId,
+        selector: pack.data.selector,
+      }
+    )) as { nodeId: number }
+    await chrome.debugger.sendCommand({ tabId: this.tabId }, 'DOM.setFileInputFiles', {
+      nodeId,
+      files: pack.data.files,
+    })
     await DebuggerManager.detach(attachId)
   }
 

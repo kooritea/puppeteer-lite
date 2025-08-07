@@ -27,6 +27,7 @@ type ServerPageEvent =
   | 'page.close'
 type ServerpageKeyboardEvent = 'page.keyboard.press' | 'page.keyboard.type'
 type ServerpageMouseEvent = 'page.mouse.click'
+type ServerpageDomEvent = 'page.dom.setFileInputFiles'
 type ServerpageNetworkEvent = 'page.network.enable' | 'page.network.disable'
 type ServerBrowserEvent =
   | 'browser.auth'
@@ -37,6 +38,7 @@ type ServerEvent =
   | ServerPageEvent
   | ServerpageKeyboardEvent
   | ServerpageMouseEvent
+  | ServerpageDomEvent
   | ServerBrowserEvent
   | ServerpageNetworkEvent
 
@@ -147,6 +149,17 @@ interface FromServerPageMouseClickSocketPack extends SocketPack {
   }
 }
 
+interface FromServerPageDomSetFileInputFilesSocketPack extends SocketPack {
+  event: 'page.dom.setFileInputFiles'
+  id: string
+  data: {
+    // input[type="file"] 的选择器
+    selector: string
+    // 被控制方浏览器宿主机上的文件路径
+    files: Array<string>
+  }
+}
+
 interface FromServerPageNetworkEnableSocketPack extends SocketPack {
   event: 'page.network.enable'
   id: string
@@ -193,6 +206,7 @@ type FromServerSocketPack =
   | FromServerPageKeyboardPressSocketPack
   | FromServerPageKeyboardTypeSocketPack
   | FromServerPageMouseClickSocketPack
+  | FromServerPageDomSetFileInputFilesSocketPack
   | FromServerPageNetworkEnableSocketPack
   | FromServerPageNetworkDisableSocketPack
   | FromServerBrowserAuthSocketPack
